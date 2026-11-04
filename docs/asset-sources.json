@@ -1,0 +1,203 @@
+{
+  "note": "沿用本项目已确认的 H5 演示视觉与品牌素材；业务 API、鉴权与预约数据逻辑在独立工程实现，未连接旧网站后台。",
+  "assets": [
+    {
+      "id": "store-01",
+      "url": "/media/store-01.webp",
+      "title": "梅花路店",
+      "category": "空间"
+    },
+    {
+      "id": "store-02",
+      "url": "/media/store-02.webp",
+      "title": "上海中心一店",
+      "category": "空间"
+    },
+    {
+      "id": "store-03",
+      "url": "/media/store-03.webp",
+      "title": "上海中心二店",
+      "category": "空间"
+    },
+    {
+      "id": "store-04",
+      "url": "/media/store-04.webp",
+      "title": "吴江路店",
+      "category": "空间"
+    },
+    {
+      "id": "store-05",
+      "url": "/media/store-05.webp",
+      "title": "华山路店",
+      "category": "空间"
+    },
+    {
+      "id": "store-06",
+      "url": "/media/store-06.webp",
+      "title": "四川北路店",
+      "category": "空间"
+    },
+    {
+      "id": "store-07",
+      "url": "/media/store-07.webp",
+      "title": "常德路店",
+      "category": "空间"
+    },
+    {
+      "id": "store-08",
+      "url": "/media/store-08.webp",
+      "title": "百乐门店",
+      "category": "空间"
+    },
+    {
+      "id": "store-09",
+      "url": "/media/store-09.webp",
+      "title": "太古汇店",
+      "category": "空间"
+    },
+    {
+      "id": "store-10",
+      "url": "/media/store-10.webp",
+      "title": "余姚路店",
+      "category": "空间"
+    },
+    {
+      "id": "store-01-alt",
+      "url": "/media/store-01-alt.webp",
+      "title": "梅花路店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "store-02-alt",
+      "url": "/media/store-02-alt.webp",
+      "title": "上海中心一店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "store-03-alt",
+      "url": "/media/store-03-alt.webp",
+      "title": "上海中心二店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "store-04-alt",
+      "url": "/media/store-04-alt.webp",
+      "title": "吴江路店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "store-05-alt",
+      "url": "/media/store-05-alt.webp",
+      "title": "华山路店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "store-06-alt",
+      "url": "/media/store-06-alt.webp",
+      "title": "四川北路店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "store-07-alt",
+      "url": "/media/store-07-alt.webp",
+      "title": "常德路店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "store-08-alt",
+      "url": "/media/store-08-alt.webp",
+      "title": "百乐门店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "store-09-alt",
+      "url": "/media/store-09-alt.webp",
+      "title": "太古汇店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "store-10-alt",
+      "url": "/media/store-10-alt.webp",
+      "title": "余姚路店 · 空间",
+      "category": "空间"
+    },
+    {
+      "id": "space-08-full",
+      "url": "/media/space-08-full.webp",
+      "title": "百乐门店 · 原景",
+      "category": "空间"
+    },
+    {
+      "id": "space-06-full",
+      "url": "/media/space-06-full.webp",
+      "title": "四川北路店 · 原景",
+      "category": "空间"
+    },
+    {
+      "id": "space-07-full",
+      "url": "/media/space-07-full.webp",
+      "title": "常德路店 · 原景",
+      "category": "空间"
+    },
+    {
+      "id": "moxa",
+      "url": "/media/moxa.webp",
+      "title": "艾灸养护",
+      "category": "养护"
+    },
+    {
+      "id": "massage",
+      "url": "/media/massage.webp",
+      "title": "经络舒缓",
+      "category": "养护"
+    },
+    {
+      "id": "foot",
+      "url": "/media/foot.webp",
+      "title": "足部养护",
+      "category": "养护"
+    },
+    {
+      "id": "guasha",
+      "url": "/media/guasha.webp",
+      "title": "东方刮痧",
+      "category": "养护"
+    },
+    {
+      "id": "ritual",
+      "url": "/media/ritual.webp",
+      "title": "手作温度",
+      "category": "养护"
+    },
+    {
+      "id": "tea",
+      "url": "/media/tea.webp",
+      "title": "一盏清茶",
+      "category": "好物"
+    },
+    {
+      "id": "herb-field",
+      "url": "/media/herb-field.webp",
+      "title": "蕲春艾田",
+      "category": "好物"
+    },
+    {
+      "id": "herbal",
+      "url": "/media/herbal.webp",
+      "title": "草本日常",
+      "category": "好物"
+    },
+    {
+      "id": "ceremony",
+      "url": "/media/ceremony.webp",
+      "title": "东方器物",
+      "category": "好物"
+    },
+    {
+      "id": "moxa-product",
+      "url": "/media/moxa-product.webp",
+      "title": "蕲春陈艾",
+      "category": "好物"
+    }
+  ]
+}

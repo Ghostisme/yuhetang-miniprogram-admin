@@ -1,0 +1,12 @@
+node_modules/
+dist/
+logs/
+test-results/
+docs/screenshots/
+docs/*-result.json
+docs/restart-*.json
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

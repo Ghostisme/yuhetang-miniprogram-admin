@@ -1,0 +1,30 @@
+{
+  "name": "yuhetang-miniprogram-admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "verify:audit": "node tools/verify-audit.mjs",
+    "verify:therapists": "node tools/verify-therapist-stores.mjs",
+    "verify:e2e": "node tools/verify-e2e.mjs",
+    "screenshots": "node tools/preview.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "0.468.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "playwright": "^1.56.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.7"
+  }
+}
