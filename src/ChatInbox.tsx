@@ -1,5 +1,5 @@
 import {ActionButton,TextInput,SelectInput,TextArea,DisabledFieldset} from './components/AdminControls'
-import {useEffect,useRef,useState,type FormEvent} from 'react'
+import {useEffect,useRef,useState,type FormEvent,type KeyboardEvent} from 'react'
 import {MessageCircle,RefreshCw,Send} from 'lucide-react'
 import {api,displayTime,newId} from './api'
 import type {Ctx} from './Admin'
@@ -16,6 +16,7 @@ export default function ChatInbox({ctx}:{ctx:Ctx}){
   const [listLoading,setListLoading]=useState(true),[listError,setListError]=useState('')
   const [draft,setDraft]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[olderBusy,setOlderBusy]=useState(false),[hasOlder,setHasOlder]=useState(false),[revision,setRevision]=useState(0)
   const bottom=useRef<HTMLDivElement>(null),key=useRef(newId()),currentId=useRef(selectedId),cursor=useRef(0),pending=useRef(false),seen=useRef(new Map<string,number>()),firstList=useRef(true)
+  const replyFlight=useRef(''),composing=useRef(false)
   currentId.current=selectedId
   useEffect(()=>{setRows([]);setSelectedId('');setPage(1);setListLoading(true);setListError('');seen.current.clear();firstList.current=true},[ctx.store,status,search])
   useEffect(()=>{
@@ -46,7 +47,7 @@ export default function ChatInbox({ctx}:{ctx:Ctx}){
   },[ctx.store,status,search,page,revision])
   useEffect(()=>{
     let alive=true,timer:ReturnType<typeof setTimeout>
-    setSelected(null);setMessages([]);setDraft('');setBusy(false);setError('');setHasOlder(false);setOlderBusy(false);key.current=newId();cursor.current=0;pending.current=false
+    setSelected(null);setMessages([]);setDraft('');setBusy(false);setError('');setHasOlder(false);setOlderBusy(false);key.current=newId();cursor.current=0;pending.current=false;replyFlight.current='';composing.current=false
     if(!selectedId)return
     async function poll(){
       if(document.hidden){timer=setTimeout(()=>void poll(),10000);return}
@@ -70,15 +71,28 @@ export default function ChatInbox({ctx}:{ctx:Ctx}){
     try{const r=await api(`/api/admin/chats/${id}/messages?before=${messages[0].seq}`);if(currentId.current===id){setMessages(old=>merge(old,r.items));setHasOlder(r.items.length===100)}}
     catch(e){if(currentId.current===id)setError((e as Error).message)}finally{if(currentId.current===id)setOlderBusy(false)}
   }
-  async function reply(e:FormEvent){
-    e.preventDefault();if(!selected||busy||!draft.trim()||!ctx.can('chat:reply'))return
-    const id=selectedId;setBusy(true);setError('')
+  function replyKeyDown(e:KeyboardEvent<HTMLTextAreaElement>){
+    if(e.key!=='Enter'||e.shiftKey||composing.current||e.nativeEvent.isComposing||e.nativeEvent.keyCode===229)return
+    e.preventDefault()
+    if(!e.repeat)e.currentTarget.form?.requestSubmit()
+  }
+  async function reply(e:FormEvent<HTMLFormElement>){
+    e.preventDefault();if(!canReply||busy||replyFlight.current||!draft.trim()||composing.current)return
+    const id=selectedId,clientKey=key.current,form=e.currentTarget;replyFlight.current=clientKey;setBusy(true);setError('')
     try{
-      const result=await api<Row>(`/api/admin/chats/${id}/messages`,{method:'POST',body:JSON.stringify({content:draft,clientKey:key.current})})
+      const result=await api<Row>(`/api/admin/chats/${id}/messages`,{method:'POST',body:JSON.stringify({content:draft,clientKey})})
       if(currentId.current!==id)return
       setMessages(old=>merge(old,[result]));setDraft('');key.current=newId();setRevision(v=>v+1)
       if(result.deliveryStatus==='FAILED'||result.deliveryStatus==='UNKNOWN')setError(result.errorMessage||'微信暂未确认发送结果，请核实后再继续。')
-    }catch(e){if(currentId.current===id)setError((e as Error).message)}finally{if(currentId.current===id)setBusy(false)}
+    }catch(e){if(currentId.current===id)setError((e as Error).message)}finally{
+      if(replyFlight.current===clientKey){
+        replyFlight.current=''
+        if(currentId.current===id){
+          setBusy(false)
+          if(form.isConnected&&(document.activeElement===document.body||form.contains(document.activeElement)))form.querySelector('textarea')?.focus()
+        }
+      }
+    }
   }
   async function changeStatus(){
     if(!selected)return
@@ -105,7 +119,7 @@ export default function ChatInbox({ctx}:{ctx:Ctx}){
       <section className="chat-thread">{selected?<><header><div><strong>{selected.displayName} · {selected.storeName}</strong><small>{selected.channel==='WECHAT'?'微信小程序客服':'小程序在线客服'} · {selected.status==='RESOLVED'?'已处理':'进行中'}</small></div><div className="button-row">{ctx.can('chat:reply')&&<ActionButton className="a-secondary" onClick={()=>void changeStatus()}>{selected.status==='OPEN'?'标记处理完成':'重新打开'}</ActionButton>}{ctx.me.hq&&ctx.can('chat:route')&&!selected.storeId&&<SelectInput aria-label="转交门店" value="" onChange={e=>void route(e.target.value)}><option value="">转交门店</option>{ctx.stores.filter(s=>s.enabled).map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</SelectInput>}</div></header>
       {selected.channel==='WECHAT'&&<p className="chat-window-note">{!selected.activeRoute?'客户已切换咨询门店，请由当前接待门店回复。':selected.replyDeadline>Date.now()/1000?`微信可回复 ${selected.replyRemaining} 条，窗口截止 ${displayTime(new Date(selected.replyDeadline*1000).toISOString())}。`:'微信回复窗口已关闭，请等待客户再次发消息。'}</p>}
       <div className="chat-messages" aria-live="polite">{hasOlder&&<ActionButton className="a-link chat-history" disabled={olderBusy} onClick={()=>void older()}>{olderBusy?'正在加载…':'查看更早消息'}</ActionButton>}{messages.map(m=><article className={`chat-bubble ${m.direction==='IN'?'incoming':''}`} key={m.id}><small>{m.direction==='IN'?selected.displayName:m.senderName} · {displayTime(m.createdAt)}</small><p>{m.content}</p>{m.kind==='image'&&<ActionButton className="a-link" onClick={()=>void downloadImage(m)}>下载客户图片</ActionButton>}{m.deliveryStatus!=='SENT'&&m.deliveryStatus!=='RECEIVED'&&<em>{m.deliveryStatus==='SENDING'?'发送中':m.errorMessage||(m.deliveryStatus==='UNKNOWN'?'发送结果待核实，请先确认客户是否收到。':'发送失败')}</em>}</article>)}<div ref={bottom}/></div>
-      <form className="chat-reply" onSubmit={reply}><TextArea aria-label="回复消息" maxLength={2000} disabled={!canReply||busy} value={draft} onChange={e=>{setDraft(e.target.value);key.current=newId()}} placeholder={canReply?'输入回复内容…':ctx.can('chat:reply')?'暂不可回复，请等待客户再次进入或发送消息。':'当前账号可查看会话，请联系有回复权限的同事处理。'}/><ActionButton className="a-primary" disabled={busy||!draft.trim()||!canReply}><Send size={16}/>{busy?'发送中…':'发送'}</ActionButton></form></>:<div className="chat-blank"><MessageCircle size={30}/><p>{selectedId?(error?'会话内容加载失败，请稍后重试。':'正在加载会话…'):'选择左侧会话查看和回复客户。'}</p></div>}</section>
+      <form className="chat-reply" onSubmit={reply}><div className="chat-reply-editor"><TextArea aria-label="回复消息" aria-describedby="chat-reply-hint" maxLength={2000} disabled={!canReply} readOnly={busy} value={draft} onKeyDown={replyKeyDown} onCompositionStart={()=>{composing.current=true}} onCompositionEnd={()=>{composing.current=false}} onChange={e=>{setDraft(e.target.value);key.current=newId()}} placeholder={canReply?'输入回复内容…':ctx.can('chat:reply')?'暂不可回复，请等待客户再次进入或发送消息。':'当前账号可查看会话，请联系有回复权限的同事处理。'}/><small id="chat-reply-hint" className="chat-reply-hint">Enter 发送，Shift+Enter 换行</small></div><ActionButton className="a-primary" disabled={busy||!draft.trim()||!canReply}><Send size={16}/>{busy?'发送中…':'发送'}</ActionButton></form></>:<div className="chat-blank"><MessageCircle size={30}/><p>{selectedId?(error?'会话内容加载失败，请稍后重试。':'正在加载会话…'):'选择左侧会话查看和回复客户。'}</p></div>}</section>
     </div>{error&&<p className="admin-error" role="alert">{error}</p>}
   </section>
 }
