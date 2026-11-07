@@ -39,6 +39,7 @@
 #root .admin-login .ant-btn-primary { width:100%; height:42px; margin-top:18px; }
 #root .operations .chat-list-item.ant-btn { display:block; height:auto; min-height:0; width:100%; padding:16px; border-radius:0; white-space:normal; text-align:left; line-height:1.6; }
 #root .operations .chat-list-item.ant-btn > span { display:block; width:100%; }
+#root .operations .chat-list-item.ant-btn > .chat-list-title { display:flex; }
 #root .operations .calendar-booking.ant-btn { display:block; height:auto; min-height:110px; padding:16px; white-space:normal; text-align:left; line-height:1.6; }
 #root .operations .calendar-booking.ant-btn > span { display:block; width:100%; }
 #root .operations .inbox-popover > .ant-btn { display:block; height:auto; width:100%; padding:14px; text-align:left; white-space:normal; line-height:1.7; }

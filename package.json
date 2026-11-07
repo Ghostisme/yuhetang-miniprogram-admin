@@ -13,6 +13,7 @@
     "verify:e2e": "node tools/verify-e2e.mjs",
     "screenshots": "node tools/preview.mjs",
     "verify:store-chat": "node tools/verify-store-chat.mjs",
+    "verify:customer-chat": "node tools/verify-customer-chat.mjs",
     "verify:rbac": "node tools/verify-rbac.mjs",
     "verify:notifications": "node tools/verify-notifications.mjs",
     "verify:dianping": "node tools/verify-dianping.mjs",
