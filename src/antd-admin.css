@@ -1,0 +1,85 @@
+/* Scope admin overrides so brand previews keep their own controls and scale. */
+#root :is(.operations,.admin-login) .ant-btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  height:38px; min-height:38px; padding:0 15px; margin:0; line-height:1;
+  font-size:14px; font-family:inherit; border-radius:6px; vertical-align:middle;
+}
+#root :is(.operations,.admin-login) .ant-btn svg { flex-shrink:0; width:16px; height:16px; }
+#root :is(.operations,.admin-login) .ant-btn-primary { background:#53704b; color:#fff; }
+#root :is(.operations,.admin-login) .ant-btn-default { background:#fff; border:1px solid #dce4d6; color:#43583e; }
+#root :is(.operations,.admin-login) .ant-btn-link { color:#53704b; background:transparent; padding:0 5px; }
+#root :is(.operations,.admin-login) .ant-btn-text { background:transparent; color:inherit; }
+#root :is(.operations,.admin-login) .ant-btn[disabled] { color:#a7ada2; background:#f3f5f0; border-color:#e3e7df; }
+#root :is(.operations,.admin-login) .ant-btn-dangerous { color:#b74938; }
+#root :is(.operations,.admin-login) .ant-input { min-width:0; min-height:38px; font-size:14px; line-height:1.6; border-radius:6px; }
+#root :is(.operations,.admin-login) .ant-input-affix-wrapper { min-height:38px; padding:4px 11px; border-radius:6px; }
+#root :is(.operations,.admin-login) .ant-input-affix-wrapper input { padding:0; border:0; min-height:28px; background:transparent; }
+#root :is(.operations,.admin-login) .ant-checkbox-input { min-height:0; padding:0; width:100%; height:100%; }
+.admin-select { display:inline-block; position:relative; min-width:120px; max-width:100%; vertical-align:middle; }
+.admin-select .ant-select { width:100%; min-height:38px; }
+#root .operations .admin-field > .admin-select,
+.ant-modal .admin-field > .admin-select,
+#root .operations .catalog-navigation .admin-select { width:100%; }
+#root .operations .scope-control { padding:0; gap:8px; border:0; background:transparent; }
+#root .operations .scope-control .admin-select { min-width:150px; }
+#root .operations .select-validation,
+.ant-modal .select-validation { position:absolute; bottom:0; left:0; width:1px; height:1px; min-height:0; padding:0; margin:0; border:0; opacity:0; pointer-events:none; }
+#root .operations .ops-sidebar nav > .ant-btn { width:100%; height:44px; justify-content:flex-start; padding:0 14px; margin:3px 0; border-radius:6px; }
+#root .operations .ops-sidebar nav > .ant-btn > span:not(.ant-btn-icon) { flex:1; text-align:left; }
+#root .operations .ops-sidebar nav > .ant-btn.active,
+#root .operations .segmented > .ant-btn.active { color:#435e37; background:#e8efdf; }
+#root .operations .segmented { display:inline-flex; flex-wrap:wrap; gap:4px; border-radius:6px; }
+#root .operations .segmented > .ant-btn { height:34px; min-height:34px; padding:0 14px; font-size:13px; }
+#root .operations .theme-choices { flex-wrap:wrap; }
+#root .operations .pager { justify-content:flex-end; flex-shrink:0; }
+#root .operations .pager .ant-pagination { margin:0; }
+#root .operations .pager .ant-pagination button { padding:0; width:100%; height:100%; border:0; background:transparent; }
+#root .operations .ant-tag { padding:2px 9px; margin:0; font-size:12px; line-height:20px; border-radius:4px; }
+#root :is(.operations,.admin-login) .ant-alert { margin:16px 0; }
+#root .admin-login .ant-btn-primary { width:100%; height:42px; margin-top:18px; }
+#root .operations .chat-list-item.ant-btn { display:block; height:auto; min-height:0; width:100%; padding:16px; border-radius:0; white-space:normal; text-align:left; line-height:1.6; }
+#root .operations .chat-list-item.ant-btn > span { display:block; width:100%; }
+#root .operations .calendar-booking.ant-btn { display:block; height:auto; min-height:110px; padding:16px; white-space:normal; text-align:left; line-height:1.6; }
+#root .operations .calendar-booking.ant-btn > span { display:block; width:100%; }
+#root .operations .inbox-popover > .ant-btn { display:block; height:auto; width:100%; padding:14px; text-align:left; white-space:normal; line-height:1.7; }
+#root .operations .chat-reply .ant-input { min-height:68px; }
+#root .operations .notification-channel-tabs .ant-btn.active,
+#root .operations .store-scope-shortcuts .ant-btn[aria-pressed=true] { background:#53704b; color:#fff; }
+.ant-modal .admin-field { display:flex; flex-direction:column; gap:9px; min-width:0; margin-bottom:18px; color:#687561; font-size:13px; }
+.ant-modal .admin-field > span:first-child { font-weight:500; }
+.ant-modal .form-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 20px; }
+.ant-modal .field-wide { grid-column:1/-1; }
+.ant-modal .button-row { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:16px; }
+.ant-modal .toggle-field { display:inline-flex; align-items:center; gap:9px; margin:8px 14px 8px 0; font-size:13px; }
+.ant-modal .admin-note,.ant-modal .field-note { padding:12px; margin:14px 0; background:#f0f4e8; color:#748069; font-size:13px; line-height:1.8; }
+.ant-modal .admin-error { margin:12px 0; color:#a64532; font-size:13px; line-height:1.8; }
+.ant-modal .a-primary { background:#53704b; color:#fff; }
+.ant-modal .a-danger { color:#b74938; }
+.ant-modal .detail-status { display:flex; align-items:center; gap:14px; margin-bottom:20px; font-size:13px; }
+.ant-modal .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; font-size:14px; line-height:1.9; margin-bottom:20px; }
+.ant-modal .detail-grid h3 { margin:0 0 10px; font-size:18px; }
+.ant-modal .detail-grid small { display:block; color:#74806f; }
+.ant-modal .detail-actions { border-top:1px solid #e4ecd7; padding-top:18px; }
+.ant-modal .ops-table { width:100%; border-collapse:collapse; font-size:13px; }
+.ant-modal .ops-table :is(th,td) { padding:10px; text-align:left; border-bottom:1px solid #e4ecd7; }
+.ant-modal .table-scroll { overflow:auto; }
+@media(max-width:750px) {
+  #root .operations .ops-page-heading { flex-wrap:wrap; gap:12px; }
+  #root .operations .scope-control { max-width:100%; margin-top:0; }
+  #root .operations .scope-control .admin-select { min-width:140px; }
+  .ant-modal .form-columns,.ant-modal .detail-grid { grid-template-columns:minmax(0,1fr); }
+  #root .operations .ops-sidebar nav > .ant-btn { width:auto; padding:0 12px; }
+  #root .operations .pager { overflow-x:auto; justify-content:flex-start; }
+}
+
+/* Keep dialogs inside the viewport; long forms scroll within the body. */
+.admin-modal.ant-modal { top:0; padding-bottom:0; max-width:calc(100vw - 32px); }
+.admin-modal .ant-modal-container { display:flex; flex-direction:column; max-height:calc(100dvh - 48px); }
+.admin-modal .ant-modal-header { flex-shrink:0; padding-right:24px; }
+.admin-modal .ant-modal-body { min-height:0; overflow-y:auto; overscroll-behavior:contain; padding-right:4px; }
+.admin-modal .ant-btn { height:38px; min-height:38px; display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:6px; font-size:14px; }
+.admin-modal .ant-btn-primary { background:#53704b; color:#fff; }
+.admin-modal .ant-modal-close { display:flex; align-items:center; justify-content:center; }
+@media(max-width:750px) {
+  .admin-modal .ant-modal-container { max-height:calc(100dvh - 32px); padding:20px 16px; }
+}

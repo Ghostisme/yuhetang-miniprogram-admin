@@ -16,9 +16,11 @@
     "verify:rbac": "node tools/verify-rbac.mjs",
     "verify:notifications": "node tools/verify-notifications.mjs",
     "verify:dianping": "node tools/verify-dianping.mjs",
-    "verify:viewport": "node tools/verify-admin-viewport.mjs"
+    "verify:viewport": "node tools/verify-admin-viewport.mjs",
+    "package:release": "python tools/package-release.py"
   },
   "dependencies": {
+    "antd": "6.7.0",
     "lucide-react": "0.468.0",
     "react": "19.2.0",
     "react-dom": "19.2.0"

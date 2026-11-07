@@ -86,11 +86,13 @@ try{
     await navigate(page,'stores','门店与时段')
     assert.equal(await page.locator('.ops-main').evaluate(e=>e.scrollTop),0,'Module switch retained old scroll offset')
     if(username==='admin'){
-      await page.getByRole('combobox',{name:'门店范围',exact:true}).selectOption({label:'百乐门店'})
+      await page.getByRole('combobox',{name:'门店范围',exact:true}).click()
+      await page.getByRole('option',{name:'百乐门店',exact:true}).click()
       await page.locator('.settings-panel').waitFor()
       await measure(page,'admin-specific-store')
       await navigate(page,'content','品牌与内容')
-      await page.getByRole('combobox',{name:'门店范围',exact:true}).selectOption('')
+      await page.getByRole('combobox',{name:'门店范围',exact:true}).click()
+      await page.getByRole('option',{name:'全部门店',exact:true}).click()
       await page.locator('.content-section-tabs').waitFor()
       for(const name of ['品牌信息','首页封面','区块排序','客服信息']){
         await page.locator('.content-section-tabs').getByRole('button',{name,exact:true}).click()

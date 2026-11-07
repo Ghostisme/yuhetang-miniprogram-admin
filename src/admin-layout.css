@@ -89,7 +89,7 @@
   .operations .a-danger { font-size: 14px; min-height: 40px; padding: 9px 16px; }
   .operations .a-link { font-size: 13px; }
   .operations .segmented > button { padding: 8px 16px; font-size: 13px; }
-  .operations input:not([type=checkbox]):not([type=file]):not(.mini-program *),
+  .operations input:not([type=checkbox]):not([type=file]):not(.ant-select-input):not(.mini-program *),
   .operations select:not(.mini-program *),
   .operations textarea:not(.mini-program *) { min-height: 40px; font-size: 14px; }
   .operations input:not(.mini-program *)::placeholder,

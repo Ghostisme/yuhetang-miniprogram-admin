@@ -12,3 +12,7 @@ docs/restart-*.json
 !.env.example
 *.log
 .DS_Store
+
+releases/
+__pycache__/
+*.pyc
