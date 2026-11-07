@@ -14,6 +14,7 @@ import './store-scope.css'
 import {moduleAllowed,togglePermission,type Permission} from './rbac'
 import {Alert,Modal as AntModal,Pagination,Switch,Tag} from 'antd'
 import {ActionButton,TextInput,SelectInput,TextArea,DisabledFieldset} from './components/AdminControls'
+import ImageListEditor,{imagePaths} from './components/ImageListEditor'
 
 export type Ctx={me:AdminIdentity;stores:StoreItem[];store:string;setStore:(s:string)=>void;refreshStores:()=>Promise<void>;can:(p:string)=>boolean;notify:(s:string)=>void;openNotification?:(row:Row)=>void}
 const sourceLabels:Row={MINIPROGRAM:'小程序',PHONE:'电话',WECHAT:'微信',DIANPING:'大众点评',WALKIN:'到店'}
@@ -181,7 +182,7 @@ function StoreSettingsDetail({ctx,sid}:{ctx:Ctx;sid:string}){
   const [store,setStore]=useState<Row|null>(null),[rules,setRules]=useState<Rules|null>(null),[error,setError]=useState(''),[override,setOverride]=useState({date:dateInput(1),time:'*',capacity:4,closed:false}),[overrides,setOverrides]=useState<Row[]>([])
   const [section,setSection]=useState('profile')
   useEffect(()=>{let current=true;api<StoreItem[]>('/api/admin/stores').then(rows=>current&&setStore(rows.find(s=>s.id===sid)||null)).catch(e=>current&&setError(e.message));if(ctx.can('rules:write')){api<Rules>(`/api/admin/stores/${sid}/rules`).then(r=>current&&setRules(r)).catch(e=>current&&setError(e.message));api<Row[]>(`/api/admin/stores/${sid}/slots`).then(r=>current&&setOverrides(r)).catch(e=>current&&setError(e.message))}return()=>{current=false}},[sid])
-  async function save(type:string){try{if(type==='profile'&&ctx.can('stores:write')){setStore(await post(`/api/admin/stores/${sid}`,store));await ctx.refreshStores()}if(type==='rules')setRules(await post(`/api/admin/stores/${sid}/rules`,rules));if(type==='slot'){await post(`/api/admin/stores/${sid}/slots`,override);setOverrides(await api(`/api/admin/stores/${sid}/slots`))}ctx.notify('门店配置已保存。');setError('')}catch(e){setError(friendlyError(e))}}
+  async function save(type:string){try{if(type==='profile'&&ctx.can('stores:write')){setStore(await post(`/api/admin/stores/${sid}`,{...store,gallery:imagePaths(store?.gallery||[])}));await ctx.refreshStores()}if(type==='rules')setRules(await post(`/api/admin/stores/${sid}/rules`,rules));if(type==='slot'){await post(`/api/admin/stores/${sid}/slots`,override);setOverrides(await api(`/api/admin/stores/${sid}/slots`))}ctx.notify('门店配置已保存。');setError('')}catch(e){setError(friendlyError(e))}}
   if(!store)return <Empty text="正在读取门店配置…"/>
   return <>
     <ErrorLine error={error}/>
@@ -202,7 +203,7 @@ function StoreSettingsDetail({ctx,sid}:{ctx:Ctx;sid:string}){
             <Field label="门店介绍" wide><AutoTextarea value={store.description||''} onChange={e=>setStore({...store,description:e.target.value})}/></Field>
             <Field label="纬度（地图导航）"><TextInput type="number" step="any" value={store.latitude||''} onChange={e=>setStore({...store,latitude:Number(e.target.value)})}/></Field>
             <Field label="经度"><TextInput type="number" step="any" value={store.longitude||''} onChange={e=>setStore({...store,longitude:Number(e.target.value)})}/></Field>
-            <Field label="门店相册路径（一行一张）" wide><AutoTextarea value={(store.gallery||[]).join('\n')} onChange={e=>setStore({...store,gallery:e.target.value.split('\n').filter(Boolean)})}/></Field>
+            <ImageListEditor label="门店相册路径（一行一张）" value={store.gallery||[]} onChange={gallery=>setStore({...store,gallery})} canBrowse={ctx.can('assets:read')} disabled={!ctx.can('stores:write')}/>
           </div>
         </DisabledFieldset>
       </>}
@@ -272,7 +273,7 @@ function ContentEditor({ctx}:{ctx:Ctx}){
         if(active.current){savedServices.current=clone(services);setSite(s=>s?{...s,services}:s)}
         ctx.notify(`${storeName}的养护项目已保存，本店展示和预约已同步。`)
       }else{
-        const content=await post(`/api/admin/content/${publish?'publish':'draft'}`,site)
+        const content=await post(`/api/admin/content/${publish?'publish':'draft'}`,{...site,galleryGroups:site.galleryGroups.map(group=>({...group,images:imagePaths(group.images)}))})
         if(active.current)setSite(content)
         ctx.notify(publish?'内容已发布，客户页面将读取新版本。':'草稿已保存，客户页面仍使用已发布内容。')
       }
@@ -282,7 +283,7 @@ function ContentEditor({ctx}:{ctx:Ctx}){
   }
   if(needsStore)return <section className="ops-card"><Empty text="请选择上方的具体门店，查看或维护该门店的养护项目。"/></section>
   if(!site)return <><ErrorLine error={error}/><Empty text="正在读取品牌内容…"/></>
-  const previewSite=scoped&&canServices?{...site,stores:site.stores.map(s=>s.id===storeId?{...s,services:site.services}:s)}:site
+  const previewSite={...site,stores:scoped&&canServices?site.stores.map(s=>s.id===storeId?{...s,services:site.services}:s):site.stores,galleryGroups:site.galleryGroups.map(group=>({...group,images:imagePaths(group.images)}))}
   const catalogTab=tab==='services'||tab==='products'?tab:null
   const selectableItems:Row[]=catalogTab?(site[catalogTab] as unknown as Row[]):tab==='gallery'?site.galleryGroups:[]
   const selectionKey=catalogTab||'gallery'
@@ -324,7 +325,7 @@ function ContentEditor({ctx}:{ctx:Ctx}){
           </>}
           {tab==='gallery'&&<>
             <div className="card-heading"><h3>空间相册</h3><ActionButton className="a-secondary" onClick={()=>{selectItem(site.galleryGroups.length);patch({galleryGroups:[...site.galleryGroups,{id:newId(),name:'新空间',images:[]}]})}}>新增相册</ActionButton></div>
-            {site.galleryGroups.map((g,i)=>i===selectedIndex&&<div className="gallery-editor" key={g.id}><Field label="相册名称"><TextInput value={g.name} onChange={e=>patch({galleryGroups:site.galleryGroups.map((x,n)=>n===i?{...x,name:e.target.value}:x)})}/></Field><Field label="图片路径（一行一张）"><AutoTextarea rows={3} value={g.images.join('\n')} onChange={e=>patch({galleryGroups:site.galleryGroups.map((x,n)=>n===i?{...x,images:e.target.value.split('\n').filter(Boolean)}:x)})}/></Field><div className="gallery-thumbs">{g.images.map((url,n)=><img key={n} src={url} alt={g.name}/>)}</div></div>)}
+            {site.galleryGroups.map((g,i)=>i===selectedIndex&&<div className="gallery-editor" key={g.id}><Field label="相册名称"><TextInput value={g.name} onChange={e=>patch({galleryGroups:site.galleryGroups.map((x,n)=>n===i?{...x,name:e.target.value}:x)})}/></Field><ImageListEditor label="图片路径（一行一张）" value={g.images} onChange={images=>patch({galleryGroups:site.galleryGroups.map((x,n)=>n===i?{...x,images}:x)})} canBrowse={ctx.can('assets:read')} disabled={!editable}/></div>)}
           </>}
         </DisabledFieldset>
       </section>
