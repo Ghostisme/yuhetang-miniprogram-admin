@@ -1,0 +1,10 @@
+.dianping-integration{margin-top:24px}
+.dianping-mappings{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:20px 0}
+.dianping-mappings>div{min-width:0}
+.dianping-mappings fieldset{border:0;padding:0;margin:18px 0 0;min-width:0}
+.dianping-mappings h4{margin:0 0 12px}
+.dianping-review{margin-top:8px;color:#985926;max-width:190px;font-size:12px}
+.dianping-review strong{display:block}
+.table-filters input[aria-label="搜索点评订单"]{width:min(320px,100%);min-width:0}
+[aria-label="确认点评到店预约"] .field-note{display:block;line-height:1.7;margin:12px 0 16px}
+@media(max-width:1100px){.dianping-mappings{grid-template-columns:1fr}}

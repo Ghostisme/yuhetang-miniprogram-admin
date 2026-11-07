@@ -11,7 +11,12 @@
     "verify:audit": "node tools/verify-audit.mjs",
     "verify:therapists": "node tools/verify-therapist-stores.mjs",
     "verify:e2e": "node tools/verify-e2e.mjs",
-    "screenshots": "node tools/preview.mjs"
+    "screenshots": "node tools/preview.mjs",
+    "verify:store-chat": "node tools/verify-store-chat.mjs",
+    "verify:rbac": "node tools/verify-rbac.mjs",
+    "verify:notifications": "node tools/verify-notifications.mjs",
+    "verify:dianping": "node tools/verify-dianping.mjs",
+    "verify:viewport": "node tools/verify-admin-viewport.mjs"
   },
   "dependencies": {
     "lucide-react": "0.468.0",

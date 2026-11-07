@@ -1,0 +1,21 @@
+.notification-scope{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;color:#58634e;font-size:13px}
+.notification-channel-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-bottom:24px;align-items:start}
+.notification-channel{min-width:0;height:100%;box-sizing:border-box}
+.notification-channel .card-heading{gap:10px;align-items:start}
+.notification-channel .card-heading>svg{flex-shrink:0;color:#718664}
+.notification-channel h3{font-size:16px}
+.notification-channel fieldset{border:0;margin:0;padding:0;min-width:0}
+.notification-channel .toggle-field{margin:14px 0;align-items:center}
+.notification-channel .field-note{display:block;line-height:1.85;margin:12px 0;color:#6a755f}
+.notification-channel .tag-row{gap:6px;flex-wrap:wrap;margin:16px 0}
+.notification-channel .tag-row span{white-space:normal;line-height:1.6}
+.notification-channel .button-row{gap:8px;flex-wrap:wrap}
+.notification-filters{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:16px 0 20px}
+.notification-channel-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.notification-channel-tabs button{padding:8px 14px;border:1px solid #dfe6d7;background:#fff;border-radius:4px;color:#65705b;font-size:12px}
+.notification-channel-tabs button.active{background:#536b43;color:#fff;border-color:#536b43}
+.notification-filters select{border:1px solid #dfe6d7;border-radius:4px;background:#fff;padding:8px 12px;color:#58634e;font-size:12px}
+.notification-channel-tag{display:inline-block;padding:4px 8px;border-radius:4px;font-size:11px;background:#edf1e8;color:#526847;white-space:nowrap}
+.notification-channel-tag.WECHAT{background:#e7f2eb;color:#386b4a}.notification-channel-tag.SMS{background:#f5ecdc;color:#936b31}
+@media(max-width:1400px){.notification-channel-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:950px){.notification-channel-grid{grid-template-columns:1fr}.notification-scope{align-items:start;flex-wrap:wrap}}

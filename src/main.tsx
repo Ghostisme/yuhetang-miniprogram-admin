@@ -6,6 +6,7 @@ import Admin from './Admin'
 import {useSite} from './api'
 import './brand.css'
 import './app.css'
+import './admin-layout.css'
 
 function App(){
   const {site,error}=useSite()
