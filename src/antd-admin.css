@@ -5,6 +5,7 @@
   font-size:14px; font-family:inherit; border-radius:6px; vertical-align:middle;
 }
 #root :is(.operations,.admin-login) .ant-btn svg { flex-shrink:0; width:16px; height:16px; }
+#root :is(.operations,.admin-login) .ant-btn:has(> svg:only-child) { width:38px; padding:0; flex-shrink:0; }
 #root :is(.operations,.admin-login) .ant-btn-primary { background:#53704b; color:#fff; }
 #root :is(.operations,.admin-login) .ant-btn-default { background:#fff; border:1px solid #dce4d6; color:#43583e; }
 #root :is(.operations,.admin-login) .ant-btn-link { color:#53704b; background:transparent; padding:0 5px; }
@@ -17,6 +18,12 @@
 #root :is(.operations,.admin-login) .ant-checkbox-input { min-height:0; padding:0; width:100%; height:100%; }
 .admin-select { display:inline-block; position:relative; min-width:120px; max-width:100%; vertical-align:middle; }
 .admin-select .ant-select { width:100%; min-height:38px; }
+.admin-select .ant-select-input { box-shadow:none; }
+.admin-select .ant-select-open .ant-select-content-has-value:not(.ant-select-content-has-search-value) { opacity:1; }
+.admin-select .ant-select-content-has-value .ant-select-input::placeholder { color:#344438; opacity:1; }
+.admin-select .ant-select-disabled .ant-select-input::placeholder { color:#90998b; }
+.admin-select-popup.ant-select-dropdown { padding:5px; border:1px solid #e2e8dc; box-shadow:0 8px 24px #34443814; }
+.admin-select-popup .ant-select-item { border-radius:4px; }
 #root .operations .admin-field > .admin-select,
 .ant-modal .admin-field > .admin-select,
 #root .operations .catalog-navigation .admin-select { width:100%; }
@@ -37,13 +44,12 @@
 #root .operations .ant-tag { padding:2px 9px; margin:0; font-size:12px; line-height:20px; border-radius:4px; }
 #root :is(.operations,.admin-login) .ant-alert { margin:16px 0; }
 #root .admin-login .ant-btn-primary { width:100%; height:42px; margin-top:18px; }
-#root .operations .chat-list-item.ant-btn { display:block; height:auto; min-height:0; width:100%; padding:16px; border-radius:0; white-space:normal; text-align:left; line-height:1.6; }
-#root .operations .chat-list-item.ant-btn > span { display:block; width:100%; }
-#root .operations .chat-list-item.ant-btn > .chat-list-title { display:flex; }
-#root .operations .calendar-booking.ant-btn { display:block; height:auto; min-height:110px; padding:16px; white-space:normal; text-align:left; line-height:1.6; }
-#root .operations .calendar-booking.ant-btn > span { display:block; width:100%; }
-#root .operations .inbox-popover > .ant-btn { display:block; height:auto; width:100%; padding:14px; text-align:left; white-space:normal; line-height:1.7; }
 #root .operations .chat-reply .ant-input { min-height:68px; }
+#root .operations .ant-switch { min-height:0; }
+#root .operations .ant-pagination-item a { padding:0 6px; }
+.admin-modal .ant-input { min-height:38px; }
+.admin-modal .ant-input-affix-wrapper .ant-input { min-height:0; }
+.admin-modal .ant-switch { flex-shrink:0; }
 #root .operations .notification-channel-tabs .ant-btn.active,
 #root .operations .store-scope-shortcuts .ant-btn[aria-pressed=true] { background:#53704b; color:#fff; }
 .ant-modal .admin-field { display:flex; flex-direction:column; gap:9px; min-width:0; margin-bottom:18px; color:#687561; font-size:13px; }

@@ -2,9 +2,12 @@ import {Children, isValidElement, useRef, useState, type ButtonHTMLAttributes, t
 import {Button, Checkbox, ConfigProvider, Input, Select, type InputProps} from 'antd'
 
 /** Keep existing form handlers while rendering all admin controls with Ant Design. */
-export function ActionButton({type = 'submit', className = '', children, color: _color, ...props}: ButtonHTMLAttributes<HTMLButtonElement>) {
+type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {layout?: 'action' | 'card'}
+export function ActionButton({type, layout = 'action', className = '', children, color: _color, ...props}: ActionButtonProps) {
+  // Interactive cards keep their document layout; Ant Design buttons size actions.
+  if (layout === 'card') return <button {...props} type={type || 'button'} className={className}>{children}</button>
   const variant = className.includes('a-primary') ? 'primary' : className.includes('a-link') ? 'link' : className.includes('a-secondary') || className.includes('a-danger') ? 'default' : 'text'
-  return <Button {...props} htmlType={type} type={variant} danger={className.includes('a-danger')} className={className}>{children}</Button>
+  return <Button {...props} htmlType={type || 'submit'} type={variant} danger={className.includes('a-danger')} className={className}>{children}</Button>
 }
 
 export function TextInput({type = 'text', size: _size, value, defaultValue, ...props}: InputHTMLAttributes<HTMLInputElement>) {
@@ -28,7 +31,7 @@ export function SelectInput({children, value, defaultValue, onChange, required, 
   })
   const selected = value === undefined ? undefined : String(value)
   return <span className={`admin-select ${className}`}>
-    <Select ref={ref} id={id} aria-label={ariaLabel} value={selected} defaultValue={defaultValue === undefined ? undefined : String(defaultValue)} options={options} disabled={disabled} open={open} onOpenChange={setOpen} popupMatchSelectWidth={false} onChange={next => {
+    <Select ref={ref} id={id} aria-label={ariaLabel} classNames={{root:'admin-select-control',popup:{root:'admin-select-popup'}}} value={selected} defaultValue={defaultValue === undefined ? undefined : String(defaultValue)} options={options} virtual={options.length > 100} disabled={disabled} open={open} onOpenChange={setOpen} onChange={next => {
       const target = {value: next, name: name || ''}
       onChange?.({target, currentTarget: target} as ChangeEvent<HTMLSelectElement>)
     }}/>

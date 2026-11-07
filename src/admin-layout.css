@@ -46,6 +46,41 @@
   font-size: 11px;
 }
 
+/* A KPI is a full card, not a fixed-height toolbar button. */
+.operations .stat-card {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 146px;
+  padding: 22px 24px;
+  background: #fff;
+  border: 1px solid #e0e7d9;
+  border-radius: 8px;
+  text-align: left;
+}
+.operations .stat-card:first-child { background: #f0f4e9; border-color: #dce5d0; }
+.operations .stat-card:hover { background: #f7f9f3; border-color: #b6c7a7; box-shadow: 0 3px 12px #34443808; }
+.operations .stat-card > span { display: block; padding-right: 30px; line-height: 1.6; }
+.operations .stat-card > strong { display: block; margin: 10px 0 8px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.operations .stat-card > p { line-height: 1.6; }
+.operations .stat-card > svg { width: 22px; height: 22px; top: 22px; right: 24px; color: #8ca37c; opacity: .6; }
+.operations .dashboard-columns { grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); }
+.operations .dashboard-columns > .ops-card { min-width: 0; }
+.operations .dashboard-columns .data-empty { min-height: 210px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px; }
+.operations .assets-grid > button { min-width: 0; }
+.operations .assets-grid > button small { overflow-wrap: anywhere; }
+
+@media (max-width: 1100px) {
+  .operations .dashboard-columns { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 750px) {
+  .operations .stat-card { min-height: 138px; padding: 16px; }
+  .operations .stat-card > span { font-size: 12px; padding-right: 16px; }
+  .operations .stat-card > strong { font-size: 32px; }
+  .operations .stat-card > p { font-size: 11px; }
+  .operations .stat-card > svg { right: 12px; top: 18px; width: 16px; height: 16px; }
+}
+
 @media (min-width: 1101px) {
   .operations {
     --admin-sidebar: 240px;
@@ -195,7 +230,7 @@
 
 /* The shell owns the viewport. Long pages scroll in the work area only. */
 .operations .ops-main > * { flex-shrink: 0; }
-.operations .ops-sidebar nav { min-height: 0; }
+.operations .ops-sidebar nav { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 .operations .ops-brand,
 .operations .ops-side-footer { flex-shrink: 0; }
 .operations .auto-textarea { overflow: hidden; resize: none; }
