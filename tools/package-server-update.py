@@ -57,14 +57,19 @@ def main():
             require(value == (ROOT / 'dist' / name).read_bytes(), 'Supplied admin ZIP differs from the checked source build: ' + name)
     report_path = ROOT / 'backups/wechat-menu/result.json'
     menu_report = json.loads(report_path.read_text(encoding='utf-8'))
-    require(len(menu_report['checks']) >= 7 and not menu_report['errors'] and not menu_report['unknown'], 'Missing passing isolated admin menu verification')
+    require(len(menu_report['checks']) >= 7 and not menu_report['errors'] and not menu_report['unknown'] and not menu_report.get('failure'), 'Missing passing isolated admin menu verification')
     require(report_path.stat().st_mtime >= (ROOT / 'dist/index.html').stat().st_mtime, 'Rerun browser verification against this admin build')
+    editors_path = ROOT / 'backups/list-editors/result.json'
+    editors_report = json.loads(editors_path.read_text(encoding='utf-8'))
+    require(len(editors_report['checks']) >= 9 and not editors_report['errors'] and not editors_report['unknown'] and not editors_report.get('failure'), 'Missing passing isolated list editor verification')
+    require(editors_path.stat().st_mtime >= (ROOT / 'dist/index.html').stat().st_mtime, 'Rerun list editor verification against this admin build')
     payload = {prefix + name: value for prefix, files in (('server/java/', java), ('server/admin/', admin)) for name, value in files.items()}
     for name in ('update.py', 'update.sh'):
         payload[name] = (ROOT / 'deploy/unified' / name).read_bytes().replace(b'\r\n', b'\n')
     payload['README.md'] = (ROOT / 'deploy/unified/SERVER-UPDATE.md').read_text(encoding='utf-8').replace('{{RELEASE_ID}}', args.release_id).replace('{{ADMIN_RELEASE}}', args.admin_release).replace('{{JAVA_SHA256}}', jar_sha).encode('utf-8')
     payload['validation/java-component.json'] = java['validation.json']
     payload['validation/admin-menu.json'] = report_path.read_bytes()
+    payload['validation/admin-list-editors.json'] = editors_path.read_bytes()
     payload['validation/unified-updater-tests.txt'] = passing_python(ROOT, 'test_unified_update.py')
     payload['validation/staff-config-tests.txt'] = passing_python(backend, 'test_configure_staff_wechat.py')
     for name in ('服务号菜单配置.md', '线上预约消息测试.md'):
