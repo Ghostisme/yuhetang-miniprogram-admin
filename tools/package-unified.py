@@ -166,6 +166,14 @@ def main():
     readme = (ROOT / 'deploy/unified/README.md').read_text(encoding='utf-8')
     payload['README.md'] = readme.replace('{{RELEASE_ID}}', args.release_id).replace('{{JAVA_SHA256}}', jar_sha).encode('utf-8')
     payload['validation/java-component.json'] = java['validation.json']
+    login_report = json.loads((mini / 'backups/login-verification/result.json').read_text(encoding='utf-8'))
+    require(login_report['status'] == 'passed' and not login_report['liveApisUsed'], 'Missing isolated customer login verification')
+    built_h5 = {p.relative_to(mini / 'dist/h5').as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in (mini / 'dist/h5').rglob('*') if p.is_file()}
+    require(login_report.get('h5Files') == built_h5, 'Login verification does not match the current H5 build')
+    payload['validation/client-login.json'] = (json.dumps(login_report, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+    payload['validation/client-unit-tests.txt'] = (mini / 'backups/login-unit-tests.txt').read_bytes()
+    payload['docs/小程序客户登录说明.md'] = (mini / 'README.md').read_bytes()
     for source, target in (('backups/customer-chat-verification/result.json', 'admin-chat.json'),
                            ('backups/chat-customer-verification/result.json', 'client-chat.json')):
         report = json.loads((ROOT / source).read_text(encoding='utf-8'))

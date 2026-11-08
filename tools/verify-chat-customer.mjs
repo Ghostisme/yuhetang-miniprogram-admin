@@ -16,6 +16,7 @@ const current=[];let live='history',restarts=0,failFirst=true
 await context.addInitScript(()=>{
   localStorage.setItem('yht-session-context',JSON.stringify({data:'https://mp-admin.hetuonian.cn|wechat'}))
   localStorage.setItem('yht-token',JSON.stringify({data:'fixture-customer-token'}))
+  localStorage.setItem('yht-login-consent',JSON.stringify({data:JSON.stringify({version:'2026-11-08'})}))
 })
 await context.route('**/*',async route=>{
   const req=route.request(),url=new URL(req.url())
