@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import {chromium} from 'playwright'
-import {mkdir,writeFile} from 'node:fs/promises'
+import {mkdir,readFile,writeFile} from 'node:fs/promises'
+import {resolve,sep,extname} from 'node:path'
 
 // All APIs and desktop notifications are fixtures. This never sends real messages.
 const origin='http://127.0.0.1:5181',output='backups/notifications'
+const dist=resolve('dist')
 await mkdir(output,{recursive:true})
 const browser=await chromium.launch({channel:'msedge',headless:true})
 const checks=[],errors=[],unknown=[],desktop=[]
@@ -14,7 +16,17 @@ const templates=[
 ]
 async function fixture({readonly=false,storeAccount=false}={}){
   const context=await browser.newContext({viewport:{width:2560,height:1440}})
-  const state={rows:[{id:'notice-1',storeId:'fixture-store',appointmentId:'booking-fixture',eventLabel:'新预约申请',eventType:'appointment.created',createdAt:now,payload:{storeName:'上海中心店',serviceName:'养护项目',time:'2026-11-09 10:00'},isRead:false}],chatUnread:2,latestSeq:2,channels:{storeId:'fixture-store',revision:1,pcEnabled:true,wechatCustomerEnabled:true,wechatStaffEnabled:false,smsStaffEnabled:false,smsCustomerEnabled:false,smsPhone:'13900002001',smsPhoneMasked:'139****2001'},calls:[],checks:[],saves:[],bindings:[],failInbox:false}
+  const state={rows:[{id:'notice-1',storeId:'fixture-store',appointmentId:'booking-fixture',eventLabel:'新预约申请',eventType:'appointment.created',createdAt:now,payload:{storeName:'上海中心店',serviceName:'养护项目',time:'2026-11-09 10:00'},isRead:false}],chatUnread:2,latestSeq:2,channels:{storeId:'fixture-store',revision:1,pcEnabled:true,wechatCustomerEnabled:true,wechatStaffEnabled:false,smsStaffEnabled:false,smsCustomerEnabled:false,smsPhone:'13900002001',smsPhoneMasked:'139****2001'},calls:[],checks:[],saves:[],bindings:[],failInbox:false,bound:false,serviceConfigured:false}
+  // Serve the production bundle inside Playwright routing; no preview server or external requests.
+  await context.route('**/*',async route=>{
+    const url=new URL(route.request().url())
+    if(url.origin!==origin)return route.abort()
+    const path=resolve(dist,'.'+url.pathname)
+    assert(path===dist||path.startsWith(dist+sep))
+    const file=extname(path)?path:resolve(dist,'index.html')
+    const contentType={'.js':'application/javascript','.css':'text/css','.html':'text/html','.svg':'image/svg+xml','.webp':'image/webp'}[extname(file)]||'application/octet-stream'
+    return route.fulfill({contentType,body:await readFile(file)})
+  })
   await context.exposeBinding('fixtureDesktop',(_,notice)=>desktop.push(notice))
   await context.addInitScript(()=>{
     sessionStorage.setItem('yht-admin-token','fixture-only')
@@ -46,7 +58,7 @@ async function fixture({readonly=false,storeAccount=false}={}){
         return json({items,total:items.length,unreadTotal:all.filter(r=>!r.isRead).length,page:1,asOf:now})
       }
       if(path==='/api/admin/notifications/readiness')return json({customer:{templates,credentialsConfigured:true},staff:{ready:false,issues:['待配置认证服务号 AppID / AppSecret。','待配置门店人员服务号模板 ID。']},sms:{configured:false,staffIssue:'腾讯云短信尚未配置',customerIssue:'腾讯云短信尚未配置'}})
-      if(path==='/api/admin/notifications/config')return json({channels:{...state.channels,storeId:url.searchParams.get('storeId'),...(readonly?{smsPhone:''}:{})},recipient:{},serviceConfigured:false,serviceTemplateConfigured:false})
+      if(path==='/api/admin/notifications/config')return json({channels:{...state.channels,storeId:url.searchParams.get('storeId'),...(readonly?{smsPhone:''}:{})},recipient:{bound:state.bound},serviceConfigured:state.serviceConfigured,serviceTemplateConfigured:state.serviceConfigured})
       if(path==='/api/admin/users')return json([{id:'manager-fixture',displayName:'上海中心店店长',username:'shanghai',enabled:true,storeId:'fixture-store'}])
       if(path==='/api/admin/notifications'){
         const customer=url.searchParams.get('audience')==='CUSTOMER'
@@ -59,6 +71,7 @@ async function fixture({readonly=false,storeAccount=false}={}){
       if(path==='/api/admin/inbox/read'){for(const row of state.rows)if(body.ids.includes(row.id))row.isRead=true;return json({saved:true})}
       if(path==='/api/admin/inbox/read-all'){for(const row of state.rows)if((!body.storeId||row.storeId===body.storeId)&&row.createdAt<=body.asOf)row.isRead=true;return json({saved:true})}
       if(path==='/api/admin/notifications/wechat/check'){state.checks.push(body.audience);return json({credentialsVerified:true,templates,ready:true,message:'本次检查未发送客户或店长消息。'})}
+      if(path==='/api/admin/notifications/binding'){state.bindings.push(body);return json({url:'https://open.weixin.qq.com/fixture-only-not-a-real-binding'})}
     }
     if(method==='PUT'&&path==='/api/admin/notifications/config'){state.channels={...req.postDataJSON(),revision:state.channels.revision+1};state.saves.push({...state.channels});return json({channels:state.channels,recipient:{},serviceConfigured:false})}
     unknown.push(`${method} ${path}`);return route.fulfill({status:404,json:{message:'Unmocked API blocked'}})
@@ -67,7 +80,12 @@ async function fixture({readonly=false,storeAccount=false}={}){
   return {context,state,page}
 }
 async function refresh(page){await page.evaluate(()=>window.dispatchEvent(new Event('yht-inbox-changed')));await page.waitForTimeout(150)}
-async function selectStore(page){await page.getByRole('combobox',{name:'门店范围',exact:true}).click();await page.getByRole('option',{name:'上海中心店',exact:true}).click();await page.getByLabel('门店短信接收手机号',{exact:true}).waitFor()}
+async function selectStore(page){
+  await page.getByRole('combobox',{name:'门店范围',exact:true}).click()
+  await page.getByRole('option',{name:'上海中心店',exact:true}).click()
+  await page.locator('.notification-scope').getByText('上海中心店 · 本店管理后台通知设置',{exact:true}).waitFor()
+  await page.getByRole('button',{name:'刷新绑定状态',exact:true}).waitFor()
+}
 try{
   const {context,state,page:newPage}=await fixture(),page=await newPage()
   await page.getByRole('button',{name:'站内消息',exact:true}).click()
@@ -88,10 +106,23 @@ try{
   assert.equal(state.saves.at(-1).wechatStaffEnabled,true)
   assert.equal(await page.getByRole('button',{name:'生成微信绑定链接',exact:true}).isDisabled(),true)
   checks.push('Store settings save independently and missing service credentials keep binding disabled')
+  state.serviceConfigured=true
+  await page.getByRole('button',{name:'刷新绑定状态',exact:true}).click()
+  await page.getByRole('combobox',{name:'门店消息接收账号',exact:true}).click()
+  await page.getByRole('option',{name:'上海中心店店长（shanghai）',exact:true}).click()
+  await page.getByRole('button',{name:'生成微信绑定链接',exact:true}).click()
+  await page.getByLabel('微信绑定链接',{exact:true}).waitFor()
+  assert.deepEqual(state.bindings,[{storeId:'fixture-store',adminUserId:'manager-fixture'}])
+  state.bound=true
+  await page.getByRole('button',{name:'刷新绑定状态',exact:true}).click()
+  await page.getByRole('status').filter({hasText:'本店微信接收人已确认绑定'}).waitFor()
+  checks.push('Manager binding uses only the selected store account and can refresh after phone confirmation')
   await page.screenshot({path:output+'/staff-2560.png'})
   await page.setViewportSize({width:1366,height:768})
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
+  await page.clock.runFor(400) // Finish the Ant Design popup exit animation under the fake clock.
+  await page.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth)
   await page.screenshot({path:output+'/staff-1366.png'})
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
   await page.getByRole('button',{name:'客户消息推送',exact:false}).click()
   await page.getByRole('heading',{name:'客户小程序订阅消息',exact:true}).waitFor()
   assert.equal(await page.getByRole('heading',{name:'本账号站内消息',exact:false}).count(),0)

@@ -16,6 +16,7 @@
     "verify:customer-chat": "node tools/verify-customer-chat.mjs",
     "verify:rbac": "node tools/verify-rbac.mjs",
     "verify:notifications": "node tools/verify-notifications.mjs",
+    "verify:message-center": "node tools/verify-message-center.mjs",
     "verify:dianping": "node tools/verify-dianping.mjs",
     "verify:viewport": "node tools/verify-admin-viewport.mjs",
     "verify:appearance": "node tools/verify-admin-appearance.mjs",

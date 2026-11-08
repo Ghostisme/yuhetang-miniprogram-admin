@@ -85,6 +85,14 @@ export default function Notifications({ctx}:{ctx:Ctx}){
     try{const result=await api<Row>('/api/admin/notifications/wechat/check',{method:'POST',body:JSON.stringify({audience})});if(alive.current)setConnection(result)}
     catch(e){if(alive.current)setError((e as Error).message)}finally{if(alive.current)setChecking(false)}
   }
+  async function refreshBinding(){
+    if(!store||busy)return
+    setBusy(true);setError('')
+    try{
+      const next=await api<Row>(`/api/admin/notifications/config?storeId=${encodeURIComponent(store)}`)
+      if(alive.current){setConfig(next);ctx.notify(next.recipient?.bound?'本店微信接收人已确认绑定。':'本店微信接收人尚未完成确认绑定。')}
+    }catch(e){if(alive.current)setError((e as Error).message)}finally{if(alive.current)setBusy(false)}
+  }
   const disabled=!store||!canWrite||!config||busy
   function toggle(label:string,key:string){return <label className="toggle-field"><TextInput type="checkbox" checked={!!draft[key]} disabled={disabled} onChange={e=>edit(key,e.target.checked)}/><span>{label}</span></label>}
   const storeName=ctx.stores.find(s=>s.id===store)?.name
@@ -132,10 +140,11 @@ export default function Notifications({ctx}:{ctx:Ctx}){
           <div className="connection-status"><i className={readiness?.staff.ready&&config?.recipient?.bound?'online':''}/>{readiness?.staff.ready?(config?.recipient?.bound?'本店微信接收人已绑定':'请选择门店并绑定接收人'):'服务号发送配置待完成'}</div>
           {staffIssues.map(issue=><p className="field-note" key={issue}>{issue}</p>)}
           {store&&config?<>
+            <ActionButton className="a-link" disabled={busy} onClick={()=>void refreshBinding()}><RefreshCw size={14}/>刷新绑定状态</ActionButton>
             {canWrite&&<><label className="admin-field"><span>本店微信接收账号</span><SelectInput aria-label="门店消息接收账号" value={user} disabled={busy} onChange={e=>setUser(e.target.value)}><option value="">请选择本门店账号</option>{users.filter(u=>u.enabled&&u.storeId===store).map(u=><option value={u.id} key={u.id}>{u.displayName}（{u.username}）</option>)}</SelectInput></label><div className="button-row"><ActionButton className="a-secondary" disabled={busy||!user||!config.serviceConfigured} onClick={()=>void bind()}>生成微信绑定链接</ActionButton><ActionButton className="a-link" disabled={busy||!config.recipient?.adminUserId} onClick={()=>void bind(true)}>解绑接收人</ActionButton></div></>}
             {binding&&<div className="binding-link"><p>请本人 15 分钟内在微信打开、关注服务号并确认绑定。</p><TextArea aria-label="微信绑定链接" readOnly value={binding}/><ActionButton className="a-link" onClick={()=>navigator.clipboard.writeText(binding).then(()=>ctx.notify('绑定链接已复制。')).catch(e=>setError(e.message))}>复制绑定链接</ActionButton></div>}
           </>:<p className="field-note">选择门店后查看绑定状态与接收账号。</p>}
-          <p className="field-note">接收新预约、预约状态变化及待处理超时通知。更换接收人后，待发消息不会转给新人员。</p>
+          <p className="field-note">当前“待接单提醒”用于新预约和待确认超时。已处理的预约停止旧待接单提醒；其余状态变化保留在 PC 消息。更换接收人后，待发消息不会转给新人员。</p>
         </section>
         <section className="ops-card notification-channel" aria-label="门店短信通知">
           <div className="card-heading"><div><h3>门店短信通知</h3><p>腾讯云短信 · 按门店单独启用</p></div><Smartphone size={22}/></div>
