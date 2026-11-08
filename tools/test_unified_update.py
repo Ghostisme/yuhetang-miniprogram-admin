@@ -405,12 +405,13 @@ class ReleaseTests(unittest.TestCase):
     def staff_updater(self):
         self.manifest['staffNotification'] = dict(appId='wxf9ad4dfd7684097a',
             templateId='VCNcEJHWic3yXHkcsjoyG--YjIVPGdw50G6zh2QQZqk',
+            publicUrl='https://mp-admin.hetuonian.cn',
             mapping={'thing10':'storeName','thing14':'serviceName','time12':'time','thing16':'customerName','phone_number9':'customerPhone'})
         (self.root / 'manifest.json').write_text(json.dumps(self.manifest), encoding='utf-8')
         (self.root / 'SHA256SUMS').write_text(''.join(UPDATE.digest(path) + '  ' + path.relative_to(self.root).as_posix() + '\n'
             for path in sorted(self.root.rglob('*')) if path.is_file() and path.name != 'SHA256SUMS'), encoding='utf-8')
         updater = FakeUpdater(self.root, self.base)
-        updater.environment.write_text('EXISTING=retained\nWECHAT_TEMPLATE_ID=customer-kept\nSERVICE_APP_ID=wxf9ad4dfd7684097a\nSERVICE_APP_SECRET=fixture-retained-secret\nSERVICE_TEMPLATE_ID=old-subscription-template\nSERVICE_TEMPLATE_MAPPING={"thing1":"serviceName"}\n')
+        updater.environment.write_text('EXISTING=retained\nPUBLIC_URL=https://booking.yuhetangtcm.com\nWECHAT_TEMPLATE_ID=customer-kept\nSERVICE_APP_ID=wxf9ad4dfd7684097a\nSERVICE_APP_SECRET=fixture-retained-secret\nSERVICE_TEMPLATE_ID=old-subscription-template\nSERVICE_TEMPLATE_MAPPING={"thing1":"serviceName"}\n')
         updater.containers[updater.java]['env'] = updater.environment.read_text().splitlines()
         updater.setting = '{ "thing1": "serviceName" }'
         return updater
@@ -424,6 +425,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(json.loads((updater.backup / 'staff-setting.before.json').read_text())['value'], '{ "thing1": "serviceName" }')
         self.assertIn('WECHAT_TEMPLATE_ID=customer-kept\n', updater.environment.read_text())
         self.assertIn('SERVICE_APP_SECRET=fixture-retained-secret\n', updater.environment.read_text())
+        self.assertIn('PUBLIC_URL=https://mp-admin.hetuonian.cn\n', updater.environment.read_text())
         self.assertEqual(updater.trace.count('launch'), 1)
         before = list(updater.trace)
         self.run_update(updater)
@@ -484,19 +486,42 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(updater.trace.count('launch'), 2)
         self.assertTrue(updater.staff_matches(runtime=True))
 
-    def test_staff_config_only_changes_two_explicit_environment_keys(self):
+    def test_staff_config_only_changes_three_explicit_environment_keys(self):
         updater = self.staff_updater()
         original = updater.environment.read_text()
         rendered = UPDATE.staff_environment(original, updater.staff_config)
         for line in original.splitlines():
-            if not line.startswith(('SERVICE_TEMPLATE_ID=', 'SERVICE_TEMPLATE_MAPPING=')):
+            if not line.startswith(('SERVICE_TEMPLATE_ID=', 'SERVICE_TEMPLATE_MAPPING=', 'PUBLIC_URL=')):
                 self.assertIn(line + '\n', rendered)
         with self.assertRaisesRegex(UPDATE.UpdateError, 'Duplicate'):
             UPDATE.staff_environment(original + 'SERVICE_TEMPLATE_ID=duplicate\n', updater.staff_config)
         for value in ({}, {'appId': 'bad', 'templateId': 'bad', 'mapping': {}},
-                      {**updater.staff_config, 'mapping': {'phone_number9':'secret'}}):
+                      {**updater.staff_config, 'mapping': {'phone_number9':'secret'}},
+                      {**updater.staff_config, 'publicUrl': 'http://mp-admin.hetuonian.cn'},
+                      {**updater.staff_config, 'publicUrl': 'https://booking.yuhetangtcm.com'},
+                      {**updater.staff_config, 'publicUrl': 'https://mp-admin.hetuonian.cn/admin'}):
             with self.assertRaises(UPDATE.UpdateError):
                 UPDATE.staff_template({'staffNotification': value})
+
+    def test_active_release_with_stale_runtime_detail_origin_is_reconfigured(self):
+        updater = self.staff_updater()
+        self.run_update(updater)
+        updater.containers[updater.java]['env'] = [
+            'PUBLIC_URL=https://booking.yuhetangtcm.com' if line.startswith('PUBLIC_URL=') else line
+            for line in updater.containers[updater.java]['env']]
+        self.assertTrue(updater.staff_matches())
+        self.assertFalse(updater.staff_matches(runtime=True))
+        self.run_update(updater)
+        self.assertEqual(updater.trace.count('launch'), 2)
+        self.assertTrue(updater.staff_matches(runtime=True))
+
+    def test_previous_manifests_without_detail_origin_preserve_existing_public_url(self):
+        updater = self.staff_updater()
+        config = dict(updater.staff_config)
+        config.pop('publicUrl')
+        self.assertEqual(UPDATE.staff_template({'staffNotification': config}), config)
+        rendered = UPDATE.staff_environment(updater.environment.read_text(), config)
+        self.assertIn('PUBLIC_URL=https://booking.yuhetangtcm.com\n', rendered)
 
 
 if __name__ == '__main__':

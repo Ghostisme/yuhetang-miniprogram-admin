@@ -124,8 +124,10 @@ def staff_template(manifest):
     value = manifest.get('staffNotification')
     if value is None:
         return None
-    if not isinstance(value, dict) or set(value) != {'appId', 'templateId', 'mapping'}:
+    if not isinstance(value, dict) or not {'appId', 'templateId', 'mapping'} <= set(value) or set(value) - {'appId', 'templateId', 'mapping', 'publicUrl'}:
         raise UpdateError('Invalid staff notification configuration in release manifest')
+    if 'publicUrl' in value and value['publicUrl'] != 'https://mp-admin.hetuonian.cn':
+        raise UpdateError('Staff detail URL must use the confirmed mp-admin HTTPS origin')
     if not isinstance(value['appId'], str) or not isinstance(value['templateId'], str) or not re.fullmatch(r'wx[0-9a-fA-F]{16}', value['appId']) or not re.fullmatch(r'[A-Za-z0-9_-]{16,160}', value['templateId']):
         raise UpdateError('Staff AppID or private Template Messages ID is invalid')
     mapping = value['mapping']
@@ -151,6 +153,8 @@ def staff_environment(content, config):
     environment_values(content)
     changes = {'SERVICE_TEMPLATE_ID': config['templateId'],
                'SERVICE_TEMPLATE_MAPPING': json.dumps(config['mapping'], separators=(',', ':'), ensure_ascii=True)}
+    if 'publicUrl' in config:
+        changes['PUBLIC_URL'] = config['publicUrl']
     lines, seen = [], set()
     for line in content.splitlines():
         key = line.partition('=')[0]
@@ -294,6 +298,7 @@ class Updater:
         try:
             return (values.get('SERVICE_APP_ID') == self.staff_config['appId']
                     and values.get('SERVICE_TEMPLATE_ID') == self.staff_config['templateId']
+                    and ('publicUrl' not in self.staff_config or values.get('PUBLIC_URL') == self.staff_config['publicUrl'])
                     and json.loads(values.get('SERVICE_TEMPLATE_MAPPING', '{}')) == self.staff_config['mapping']
                     and json.loads(self.staff_setting() or '{}') == self.staff_config['mapping'])
         except (ValueError, TypeError):

@@ -49,8 +49,11 @@ def main():
     require(jar_sha == validation['backendJarSha256'], 'Java validation/JAR mismatch')
     with zipfile.ZipFile(io.BytesIO(java['reservation.jar'])) as jar:
         for name in ('com/yuwatang/reservation/WechatMenuApi.class', 'com/yuwatang/reservation/WechatMenuGateway.class',
-                     'com/yuwatang/reservation/WechatMenuService.class', 'db/migration/V10__wechat_service_menu.sql'):
-            require('BOOT-INF/classes/' + name in jar.namelist(), 'Java is missing the menu implementation or migration: ' + name)
+                     'com/yuwatang/reservation/WechatMenuService.class', 'db/migration/V10__wechat_service_menu.sql',
+                     'com/yuwatang/reservation/AppointmentPolicy.class', 'com/yuwatang/reservation/RescheduleRequests.class',
+                     'com/yuwatang/reservation/RescheduleMaintenance.class', 'com/yuwatang/reservation/StaffAppointmentTemplate.class',
+                     'db/migration/V11__appointment_reschedule_requests.sql'):
+            require('BOOT-INF/classes/' + name in jar.namelist(), 'Java is missing a required implementation or migration: ' + name)
     COMPONENTS.built_after_sources(ROOT, ROOT / 'dist/index.html')
     for name, value in admin.items():
         if name != 'SHA256SUMS':
@@ -63,6 +66,11 @@ def main():
     editors_report = json.loads(editors_path.read_text(encoding='utf-8'))
     require(len(editors_report['checks']) >= 9 and not editors_report['errors'] and not editors_report['unknown'] and not editors_report.get('failure'), 'Missing passing isolated list editor verification')
     require(editors_path.stat().st_mtime >= (ROOT / 'dist/index.html').stat().st_mtime, 'Rerun list editor verification against this admin build')
+    appointment_path = ROOT / 'backups/appointment-changes/result.json'
+    appointment_report = json.loads(appointment_path.read_text(encoding='utf-8'))
+    require(appointment_report.get('status') == 'passed' and len(appointment_report['checks']) >= 8
+            and not appointment_report['errors'] and not appointment_report['unknown'], 'Missing passing staff detail/reschedule browser verification')
+    require(appointment_path.stat().st_mtime >= (ROOT / 'dist/index.html').stat().st_mtime, 'Rerun appointment verification against this admin build')
     payload = {prefix + name: value for prefix, files in (('server/java/', java), ('server/admin/', admin)) for name, value in files.items()}
     for name in ('update.py', 'update.sh'):
         payload[name] = (ROOT / 'deploy/unified' / name).read_bytes().replace(b'\r\n', b'\n')
@@ -70,9 +78,10 @@ def main():
     payload['validation/java-component.json'] = java['validation.json']
     payload['validation/admin-menu.json'] = report_path.read_bytes()
     payload['validation/admin-list-editors.json'] = editors_path.read_bytes()
+    payload['validation/admin-appointment-changes.json'] = appointment_path.read_bytes()
     payload['validation/unified-updater-tests.txt'] = passing_python(ROOT, 'test_unified_update.py')
     payload['validation/staff-config-tests.txt'] = passing_python(backend, 'test_configure_staff_wechat.py')
-    for name in ('服务号菜单配置.md', '线上预约消息测试.md'):
+    for name in ('服务号菜单配置.md', '线上预约消息测试.md', '预约取消与改约闭环.md'):
         payload['docs/' + name] = (backend / 'docs' / name).read_bytes()
     staff = None
     if args.staff_template:

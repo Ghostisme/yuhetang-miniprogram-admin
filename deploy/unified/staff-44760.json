@@ -1,6 +1,7 @@
 {
   "appId": "wxf9ad4dfd7684097a",
   "templateId": "VCNcEJHWic3yXHkcsjoyG--YjIVPGdw50G6zh2QQZqk",
+  "publicUrl": "https://mp-admin.hetuonian.cn",
   "mapping": {
     "thing10": "storeName",
     "thing14": "serviceName",
