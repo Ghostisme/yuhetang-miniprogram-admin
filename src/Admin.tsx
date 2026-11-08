@@ -7,6 +7,7 @@ import MiniProgram,{Brand} from './MiniProgram'
 import ChatInbox from './ChatInbox'
 import Notifications from './Notifications'
 import Imports from './DataImports'
+import Customers from './Customers'
 import {DianpingIntegration,DianpingOrders} from './Dianping'
 import {useAdminNotifications} from './use-admin-notifications'
 import InboxPopover from './InboxPopover'
@@ -62,7 +63,7 @@ export default function Admin(){
   {viewTab==='none'&&<section className="ops-card"><Empty text="当前账号尚未分配可用模块，请联系总部管理员配置角色权限。"/></section>}
   {viewTab==='dashboard'&&<Dashboard key={me.id+':'+store} ctx={ctx} onAppointments={()=>can('appointments:read')?setTab('appointments'):setToast('当前账号没有预约管理权限，请联系总部管理员。')}/>}
   {viewTab==='appointments'&&<Appointments key={me.id+':'+store+':'+appointmentFocus} ctx={ctx} initialSearch={appointmentFocus}/>}
-  {viewTab==='customers'&&<Customers key={me.id+':'+store} ctx={ctx}/>}
+  {viewTab==='customers'&&<Customers key={me.id+':'+store} ctx={ctx} onExport={()=>download(`/api/admin/exports/customers?storeId=${ctx.store}`,'客户档案.xlsx')}/>}
   {viewTab==='therapists'&&<Therapists key={me.id+':'+store} ctx={ctx}/>}
   {viewTab==='chats'&&<ChatInbox key={chatRevision} ctx={ctx}/>}
   {viewTab==='stores'&&<StoreSettings ctx={ctx}/>}
@@ -164,13 +165,6 @@ function Therapists({ctx}:{ctx:Ctx}){
       <ErrorLine error={error}/><ActionButton className="a-primary" disabled={busy||servicesLoading}>{busy?'保存中…':'保存资料'}</ActionButton>
     </form></Modal>}
   </section>
-}
-function Customers({ctx}:{ctx:Ctx}){
-  const [data,setData]=useState<Page<Row>>({items:[],total:0}),[page,setPage]=useState(1),[edit,setEdit]=useState<Row|null>(null),[error,setError]=useState(''),[phone,setPhone]=useState(''),[shared,setShared]=useState<Row|null>(null)
-  const requestVersion=useRef(0)
-  async function refresh(){const request=++requestVersion.current;try{const next=await api<Page<Row>>(`/api/admin/customers?storeId=${ctx.store}&page=${page}`);if(request===requestVersion.current){setData(next);setError('')}}catch(e){if(request===requestVersion.current)setError(friendlyError(e))}}useEffect(()=>{setData({items:[],total:0});void refresh();return()=>{requestVersion.current++}},[ctx.store,page])
-  async function save(e:React.FormEvent){e.preventDefault();try{await post(`/api/admin/customers/${edit!.id}`,edit);setEdit(null);await refresh();ctx.notify('客户标签与本店跟进已保存。')}catch(e){setError(friendlyError(e))}}
-  return <><section className="ops-card"><div className="card-heading"><div><h3>门店客户档案</h3><p>预约自动形成基础联系档案；自述会员与总部核实标签分别保存。</p></div>{ctx.me.hq&&ctx.can('customers:export')&&<ActionButton className="a-secondary" onClick={()=>download(`/api/admin/exports/customers?storeId=${ctx.store}`,'客户档案.xlsx').catch(e=>setError(e.message))}><Download size={14}/>导出</ActionButton>}</div><ErrorLine error={error}/>{data.items.length?<div className="table-scroll"><table className="ops-table"><thead><tr><th>客户称呼 / 电话</th><th>所属门店</th><th>核实会员标签</th><th>本店私有跟进</th><th>操作</th></tr></thead><tbody>{data.items.map(c=><tr key={c.id+c.storeId}><td><strong>{c.name}</strong><small>{c.phone}</small></td><td>{ctx.stores.find(s=>s.id===c.storeId)?.name}</td><td><span className={`status-tag ${c.memberVerified?'CONFIRMED':''}`}>{c.memberVerified?c.memberGrade||'已核实会员':'尚未核实为会员'}</span></td><td className="ellipsis-cell">{c.privateNote||'暂无跟进'}</td><td>{ctx.can('customers:write')&&<ActionButton className="a-link" onClick={()=>setEdit(clone(c))}>维护档案</ActionButton>}</td></tr>)}</tbody></table></div>:<Empty text="预约提交后，客户基础档案会自动显示在这里"/>}<Pager page={page} total={data.total} size={30} onChange={setPage}/></section>{ctx.can('customers:shared')&&<section className="ops-card shared-lookup"><h3>品牌基础档案 · 精确检索</h3><p>须由总部开启。只返回基础白名单字段，不提供其他门店私有跟进或历史预约。</p><div className="button-row"><TextInput aria-label="基础档案精确手机号" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="输入完整 11 位手机号" maxLength={11}/><ActionButton className="a-secondary" onClick={()=>post('/api/admin/customers/shared-lookup',{phone},'POST').then(setShared).catch(e=>setError(e.message))}>精确查询（留痕）</ActionButton></div>{shared&&<pre>{JSON.stringify(shared,null,2)}</pre>}</section>}{edit&&<Modal title="客户档案与本店跟进" onClose={()=>setEdit(null)}><form onSubmit={save}><h3>{edit.name} · {edit.phone}</h3><Field label="本店私有跟进（仅本店及总部）"><TextArea value={edit.privateNote||''} maxLength={1000} onChange={e=>setEdit({...edit,privateNote:e.target.value})}/></Field><Field label="客户来源"><TextInput value={edit.source||''} onChange={e=>setEdit({...edit,source:e.target.value})}/></Field>{ctx.me.hq&&ctx.can('customers:master')&&<><Toggle label="总部已核实为会员" value={edit.memberVerified} onChange={v=>setEdit({...edit,memberVerified:v})}/><Field label="核实会员等级"><TextInput value={edit.memberGrade||''} onChange={e=>setEdit({...edit,memberGrade:e.target.value})}/></Field><Field label="允许品牌共享的非敏感接待提示"><TextArea value={edit.sharedNote||''} maxLength={300} onChange={e=>setEdit({...edit,sharedNote:e.target.value})}/></Field></>}<ErrorLine error={error}/><ActionButton className="a-primary">保存档案</ActionButton></form></Modal>}</>
 }
 
 function StoreSettings({ctx}:{ctx:Ctx}){
