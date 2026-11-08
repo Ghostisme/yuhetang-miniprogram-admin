@@ -4,7 +4,9 @@ import {startPolling} from './polling'
 export const newId=()=>globalThis.crypto?.randomUUID?.()||Array.from(globalThis.crypto.getRandomValues(new Uint8Array(20)),n=>n.toString(16).padStart(2,'0')).join('')
 const pending=new Map<string,Promise<unknown>>()
 const cooldown=new Map<string,number>()
-export function api<T=any>(path:string,options:RequestInit={}):Promise<T>{
+type ApiOptions=RequestInit&{timeoutMs?:number;timeoutMessage?:string}
+export function api<T=any>(path:string,input:ApiOptions={}):Promise<T>{
+  const {timeoutMs=20000,timeoutMessage='请求超时，请检查预约列表后使用原提交标识重试。',...options}=input
   const admin=path.startsWith('/api/admin/'),token=sessionStorage.getItem(admin?'yht-admin-token':'yht-customer-token')||'',headers=new Headers(options.headers)
   const read=!options.method||options.method==='GET',key=token+'|'+path
   if(read&&!options.signal&&pending.has(key))return pending.get(key) as Promise<T>
@@ -12,7 +14,7 @@ export function api<T=any>(path:string,options:RequestInit={}):Promise<T>{
   const task=(async()=>{
     if(options.body&&!(options.body instanceof FormData))headers.set('Content-Type','application/json')
     if(token)headers.set('Authorization',`Bearer ${token}`)
-    const controller=new AbortController(),abort=()=>controller.abort(),timer=setTimeout(abort,20000)
+    const controller=new AbortController(),abort=()=>controller.abort(),timer=setTimeout(abort,timeoutMs)
     options.signal?.addEventListener('abort',abort,{once:true});if(options.signal?.aborted)controller.abort()
     try{
       const r=await fetch(path,{...options,headers,signal:controller.signal})
@@ -24,7 +26,7 @@ export function api<T=any>(path:string,options:RequestInit={}):Promise<T>{
         throw new Error(b.message||`操作未完成（${r.status}）`)
       }
       return await r.json() as T
-    }catch(e){if((e as Error).name==='AbortError')throw new Error('请求超时，请检查预约列表后使用原提交标识重试。');throw e}
+    }catch(e){if((e as Error).name==='AbortError')throw new Error(timeoutMessage);throw e}
     finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort)}
   })()
   if(read&&!options.signal){pending.set(key,task);void task.finally(()=>{if(pending.get(key)===task)pending.delete(key)}).catch(()=>{})}
