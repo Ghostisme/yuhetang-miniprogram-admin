@@ -1,0 +1,11 @@
+{
+  "appId": "wxf9ad4dfd7684097a",
+  "templateId": "VCNcEJHWic3yXHkcsjoyG--YjIVPGdw50G6zh2QQZqk",
+  "mapping": {
+    "thing10": "storeName",
+    "thing14": "serviceName",
+    "time12": "time",
+    "thing16": "customerName",
+    "phone_number9": "customerPhone"
+  }
+}

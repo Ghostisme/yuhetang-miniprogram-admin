@@ -120,6 +120,48 @@ def public_directories(directory, root):
         os.chmod(current, 0o755)
 
 
+def staff_template(manifest):
+    value = manifest.get('staffNotification')
+    if value is None:
+        return None
+    if not isinstance(value, dict) or set(value) != {'appId', 'templateId', 'mapping'}:
+        raise UpdateError('Invalid staff notification configuration in release manifest')
+    if not isinstance(value['appId'], str) or not isinstance(value['templateId'], str) or not re.fullmatch(r'wx[0-9a-fA-F]{16}', value['appId']) or not re.fullmatch(r'[A-Za-z0-9_-]{16,160}', value['templateId']):
+        raise UpdateError('Staff AppID or private Template Messages ID is invalid')
+    mapping = value['mapping']
+    allowed = {'storeName', 'serviceName', 'time', 'customerName', 'customerPhone', 'status', 'appointmentId', 'event', 'eventLabel', 'staffNotice'}
+    if not isinstance(mapping, dict) or not mapping or len(json.dumps(mapping)) > 1900 or any(not isinstance(key, str) or not isinstance(field, str) or not re.fullmatch(r'(?:[a-z_]+[0-9]+|first|remark)', key) or field not in allowed for key, field in mapping.items()):
+        raise UpdateError('Staff template field mapping is invalid')
+    return value
+
+
+def environment_values(content):
+    values = {}
+    for line in content.splitlines():
+        if not line.strip() or line.lstrip().startswith('#') or '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        if key in values:
+            raise UpdateError('Duplicate environment key; inspect the private configuration: ' + key)
+        values[key] = value
+    return values
+
+
+def staff_environment(content, config):
+    environment_values(content)
+    changes = {'SERVICE_TEMPLATE_ID': config['templateId'],
+               'SERVICE_TEMPLATE_MAPPING': json.dumps(config['mapping'], separators=(',', ':'), ensure_ascii=True)}
+    lines, seen = [], set()
+    for line in content.splitlines():
+        key = line.partition('=')[0]
+        if key in changes:
+            lines.append(key + '=' + changes[key]); seen.add(key)
+        else:
+            lines.append(line)
+    lines.extend(key + '=' + value for key, value in changes.items() if key not in seen)
+    return '\n'.join(lines) + '\n'
+
+
 class Updater:
     java = 'yuhetang-java-api'
     mysql = 'yuwatang-mysql-isolated'
@@ -133,6 +175,8 @@ class Updater:
     def __init__(self, root, site, reload_env=False):
         self.root = Path(root)
         self.manifest = verify_package(self.root)
+        self.staff_config = staff_template(self.manifest)
+        self.staff_changed = False
         self.release = self.manifest['releaseId']
         self.image = 'yuhetang-java-api:' + self.release
         self.site = Path(site)
@@ -213,6 +257,83 @@ class Updater:
         return self.command('docker', 'exec', '-i', self.mysql, 'mysql', '--defaults-extra-file=/run/secrets/client.cnf',
                             '--protocol=socket', '--database=yuwatang_reservation', '--batch', '--skip-column-names', input=sql)
 
+    def staff_setting(self):
+        value = self.mysql_query("SELECT CONCAT('VALUE:',HEX(setting_value)) FROM app_setting WHERE setting_key='serviceTemplateMapping';")
+        if not value:
+            return None
+        if not value.startswith('VALUE:') or '\n' in value:
+            raise UpdateError('Could not read the existing staff template setting')
+        return bytes.fromhex(value[6:]).decode('utf-8')
+
+    def write_staff_setting(self, value):
+        # A single named setting in this project's dedicated database. Hex keeps
+        # both the new public JSON and the exact previous value out of SQL syntax.
+        if value is None:
+            sql = "DELETE FROM app_setting WHERE setting_key='serviceTemplateMapping';"
+        else:
+            encoded = value.encode('utf-8').hex()
+            sql = "INSERT INTO app_setting(setting_key,setting_value) VALUES('serviceTemplateMapping',CONVERT(0x%s USING utf8mb4)) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value);" % encoded
+        self.mysql_query(sql)
+
+    def check_staff_account(self):
+        if not self.staff_config:
+            return
+        values = environment_values(self.environment.read_text(encoding='utf-8'))
+        runtime = environment_values('\n'.join(json.loads(self.inspect(self.java, '{{json .Config.Env}}'))))
+        if values.get('SERVICE_APP_ID') != self.staff_config['appId'] or runtime.get('SERVICE_APP_ID') != self.staff_config['appId']:
+            raise UpdateError('Staff AppID differs from the confirmed account; existing credentials were preserved')
+        if not values.get('SERVICE_APP_SECRET') or not runtime.get('SERVICE_APP_SECRET'):
+            raise UpdateError('Configure the existing service account credentials before this update')
+
+    def staff_matches(self, runtime=False):
+        if not self.staff_config:
+            return True
+        values = environment_values(self.environment.read_text(encoding='utf-8'))
+        if runtime:
+            values = environment_values('\n'.join(json.loads(self.inspect(self.java, '{{json .Config.Env}}'))))
+        try:
+            return (values.get('SERVICE_APP_ID') == self.staff_config['appId']
+                    and values.get('SERVICE_TEMPLATE_ID') == self.staff_config['templateId']
+                    and json.loads(values.get('SERVICE_TEMPLATE_MAPPING', '{}')) == self.staff_config['mapping']
+                    and json.loads(self.staff_setting() or '{}') == self.staff_config['mapping'])
+        except (ValueError, TypeError):
+            return False
+
+    def backup_staff_configuration(self):
+        if not self.staff_config:
+            return
+        atomic_copy(self.environment, self.backup / 'staff-environment.before', 0o600)
+        path = self.backup / 'staff-setting.before.json'
+        path.write_text(json.dumps({'value': self.staff_setting()}, ensure_ascii=True) + '\n', encoding='utf-8')
+        os.chmod(path, 0o600)
+
+    def apply_staff_configuration(self):
+        if not self.staff_config:
+            return
+        snapshot = self.backup / 'staff-environment.before'
+        if digest(snapshot) != digest(self.environment):
+            raise UpdateError('Environment configuration changed during backup; retry after inspecting it')
+        before = json.loads((self.backup / 'staff-setting.before.json').read_text(encoding='utf-8'))['value']
+        if self.staff_setting() != before:
+            raise UpdateError('Staff mapping changed during backup; retry after inspecting it')
+        original = snapshot.read_text(encoding='utf-8')
+        candidate = self.backup / 'staff-environment.after'
+        candidate.write_text(staff_environment(original, self.staff_config), encoding='utf-8', newline='\n')
+        os.chmod(candidate, 0o600)
+        self.staff_changed = True
+        atomic_copy(candidate, self.environment, 0o600)
+        self.write_staff_setting(json.dumps(self.staff_config['mapping'], separators=(',', ':')))
+        if not self.staff_matches():
+            raise UpdateError('Staff template configuration verification failed')
+        print('STAFF_TEMPLATE_CONFIGURED=' + self.staff_config['templateId'], flush=True)
+
+    def restore_staff_configuration(self):
+        if self.staff_changed:
+            before = json.loads((self.backup / 'staff-setting.before.json').read_text(encoding='utf-8'))['value']
+            self.write_staff_setting(before)
+            atomic_copy(self.backup / 'staff-environment.before', self.environment, 0o600)
+            self.staff_changed = False
+
     def schema(self):
         sql = """SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,COALESCE(COLUMN_DEFAULT,'<NULL>'),EXTRA
 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='yuwatang_reservation' ORDER BY TABLE_NAME,ORDINAL_POSITION;
@@ -248,6 +369,7 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
         config = regular(self.environment).stat()
         if config.st_uid != 0 or stat.S_IMODE(config.st_mode) != 0o600:
             raise UpdateError('Keep the existing root-owned 0600 Docker environment file')
+        self.check_staff_account()
         import pwd
         account = pwd.getpwnam('yuwatang')
         no_links(self.app_files)
@@ -347,6 +469,7 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
             database_config = Path('/etc/yuwatang-reservation-db')
             if database_config.is_dir() and not database_config.is_symlink():
                 archive.add(database_config, arcname='database-config')
+        self.backup_staff_configuration()
         metadata = dict(release=self.release, previousImage=self.current_image, previousContainerId=self.previous_id,
                         schemaBefore=self.schema_before, siteRoot=str(self.site), database='yuwatang_reservation')
         (self.backup / 'before.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
@@ -398,6 +521,8 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
 
     def verify_live(self):
         self.wait_ready()
+        if not self.staff_matches() or not self.staff_matches(runtime=True):
+            raise UpdateError('The running Java did not load the confirmed staff template configuration')
         value = json.loads(self.local_url('/api/health'))
         if value.get('status') != 'ok' or value.get('database') != 'connected':
             raise UpdateError('Updated HTTPS /api/ proxy check failed')
@@ -406,6 +531,8 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
 
     def already_active(self):
         if self.reload_env or self.current_image != self.image:
+            return False
+        if not self.staff_matches() or not self.staff_matches(runtime=True):
             return False
         if self.command('docker', 'exec', self.java, 'sha256sum', '/app/reservation.jar').split()[0] != self.manifest['javaJarSha256']:
             raise UpdateError('The current release tag contains an unexpected JAR')
@@ -446,6 +573,7 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
                 print('Retained previous Java: ' + str(self.previous), file=sys.stderr)
                 print('Private backup: ' + str(self.backup), file=sys.stderr)
                 return
+        self.restore_staff_configuration()
         if self.renamed:
             self.command('docker', 'rename', self.previous, self.java)
         if self.index_changed:
@@ -468,6 +596,7 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
             print('[3/6] Stop only Java and back up the dedicated database, uploads, config and frontend.', flush=True)
             self.backup_all()
             print('[4/6] Switch Java and wait for database/application health.', flush=True)
+            self.apply_staff_configuration()
             self.launch()
             self.wait_ready()
             print('[5/6] Publish frontend assets, then atomically replace index.html.', flush=True)

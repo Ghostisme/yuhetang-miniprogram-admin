@@ -73,6 +73,7 @@ class FakeUpdater(UPDATE.Updater):
         self.check_legacy_service()
         self.current_image = self.inspect(self.java, '{{.Config.Image}}')
         self.previous_id = self.inspect(self.java, '{{.Id}}')
+        self.check_staff_account()
 
     def prepare_image(self):
         self.trace.append('build-verify')
@@ -94,7 +95,26 @@ class FakeUpdater(UPDATE.Updater):
         if name not in self.containers:
             raise UPDATE.UpdateError('no container')
         row = self.containers[name]
+        if template == '{{json .Config.Env}}':
+            return json.dumps(row.get('env', self.environment.read_text().splitlines()))
         return row['image'] if template == '{{.Config.Image}}' else row['id']
+
+    def mysql_query(self, sql):
+        self.trace.append('staff-setting-sql')
+        if sql.startswith('SELECT CONCAT'):
+            value = getattr(self, 'setting', None)
+            return '' if value is None else 'VALUE:' + value.encode('utf-8').hex()
+        if sql.startswith('DELETE FROM app_setting'):
+            self.setting = None
+        elif sql.startswith('INSERT INTO app_setting'):
+            if getattr(self, 'fail_staff_write', False):
+                self.fail_staff_write = False
+                raise UPDATE.UpdateError('staff setting write failed')
+            value = sql.split('CONVERT(0x', 1)[1].split(' ', 1)[0]
+            self.setting = bytes.fromhex(value).decode('utf-8')
+        else:
+            raise AssertionError('Unexpected database write: ' + sql)
+        return ''
 
     def command(self, *args, **kwargs):
         if args[:2] == ('docker', 'update'):
@@ -121,7 +141,7 @@ class FakeUpdater(UPDATE.Updater):
             self.trace.append('launch')
             if self.fail_at == 'launch-before-create':
                 raise UPDATE.UpdateError('launch failed')
-            self.containers[self.java] = dict(image=self.image, running=True, id='new-id')
+            self.containers[self.java] = dict(image=self.image, running=True, id='new-id', env=self.environment.read_text().splitlines())
             if self.fail_at == 'launch-after-create':
                 raise UPDATE.UpdateError('launch failed')
         else:
@@ -136,6 +156,8 @@ class FakeUpdater(UPDATE.Updater):
 
     def verify_live(self):
         self.wait_ready()
+        if not self.staff_matches() or not self.staff_matches(runtime=True):
+            raise UPDATE.UpdateError('Staff config not loaded')
         self.trace.append('https-verify')
         if self.fail_at == 'https':
             raise UPDATE.UpdateError('HTTPS failed')
@@ -379,6 +401,102 @@ class ReleaseTests(unittest.TestCase):
                 os.umask(previous)
         self.assertIn(unittest.mock.call(root / 'assets', 0o755), chmod.call_args_list)
         self.assertIn(unittest.mock.call(root / 'assets/nested', 0o755), chmod.call_args_list)
+
+    def staff_updater(self):
+        self.manifest['staffNotification'] = dict(appId='wxf9ad4dfd7684097a',
+            templateId='VCNcEJHWic3yXHkcsjoyG--YjIVPGdw50G6zh2QQZqk',
+            mapping={'thing10':'storeName','thing14':'serviceName','time12':'time','thing16':'customerName','phone_number9':'customerPhone'})
+        (self.root / 'manifest.json').write_text(json.dumps(self.manifest), encoding='utf-8')
+        (self.root / 'SHA256SUMS').write_text(''.join(UPDATE.digest(path) + '  ' + path.relative_to(self.root).as_posix() + '\n'
+            for path in sorted(self.root.rglob('*')) if path.is_file() and path.name != 'SHA256SUMS'), encoding='utf-8')
+        updater = FakeUpdater(self.root, self.base)
+        updater.environment.write_text('EXISTING=retained\nWECHAT_TEMPLATE_ID=customer-kept\nSERVICE_APP_ID=wxf9ad4dfd7684097a\nSERVICE_APP_SECRET=fixture-retained-secret\nSERVICE_TEMPLATE_ID=old-subscription-template\nSERVICE_TEMPLATE_MAPPING={"thing1":"serviceName"}\n')
+        updater.containers[updater.java]['env'] = updater.environment.read_text().splitlines()
+        updater.setting = '{ "thing1": "serviceName" }'
+        return updater
+
+    def test_staff_template_and_database_mapping_are_backed_up_then_loaded_together(self):
+        updater = self.staff_updater()
+        original = updater.environment.read_bytes()
+        self.run_update(updater)
+        self.assertTrue(updater.staff_matches(runtime=True))
+        self.assertEqual((updater.backup / 'staff-environment.before').read_bytes(), original)
+        self.assertEqual(json.loads((updater.backup / 'staff-setting.before.json').read_text())['value'], '{ "thing1": "serviceName" }')
+        self.assertIn('WECHAT_TEMPLATE_ID=customer-kept\n', updater.environment.read_text())
+        self.assertIn('SERVICE_APP_SECRET=fixture-retained-secret\n', updater.environment.read_text())
+        self.assertEqual(updater.trace.count('launch'), 1)
+        before = list(updater.trace)
+        self.run_update(updater)
+        self.assertEqual(updater.trace.count('launch'), before.count('launch'))
+
+    def test_staff_account_mismatch_keeps_healthy_service_running(self):
+        updater = self.staff_updater()
+        updater.environment.write_text(updater.environment.read_text().replace('wxf9ad4dfd7684097a', 'wx1234567890abcdef'))
+        self.run_update(updater, fail=True)
+        self.assertFalse(any(item.startswith('stop:') for item in updater.trace))
+
+    def test_runtime_staff_account_mismatch_is_checked_before_downtime(self):
+        updater = self.staff_updater()
+        updater.containers[updater.java]['env'] = ['SERVICE_APP_ID=wx1234567890abcdef', 'SERVICE_APP_SECRET=fixture']
+        self.run_update(updater, fail=True)
+        self.assertNotIn('build-verify', updater.trace)
+
+    def test_unchanged_schema_failure_restores_exact_staff_configuration(self):
+        updater = self.staff_updater()
+        original, mapping = updater.environment.read_bytes(), updater.setting
+        updater.fail_at = 'health'
+        self.run_update(updater, fail=True)
+        self.assertEqual(updater.environment.read_bytes(), original)
+        self.assertEqual(updater.setting, mapping)
+        self.assertEqual(updater.containers[updater.java]['id'], 'old-id')
+        self.assertTrue(updater.containers[updater.java]['running'])
+
+    def test_failed_staff_database_write_restores_env_before_restarting_previous_java(self):
+        updater = self.staff_updater()
+        original, mapping = updater.environment.read_bytes(), updater.setting
+        updater.fail_staff_write = True
+        self.run_update(updater, fail=True)
+        self.assertEqual(updater.environment.read_bytes(), original)
+        self.assertEqual(updater.setting, mapping)
+        self.assertTrue(updater.containers[updater.java]['running'])
+        self.assertNotIn('launch', updater.trace)
+
+    def test_staff_rollback_preserves_absent_mapping_as_absent(self):
+        updater = self.staff_updater()
+        updater.setting = None
+        updater.fail_at = 'health'
+        self.run_update(updater, fail=True)
+        self.assertIsNone(updater.setting)
+
+    def test_migration_failure_retains_new_config_and_private_old_snapshot_for_recovery(self):
+        updater = self.staff_updater()
+        updater.fail_at, updater.change_schema = 'health', True
+        self.run_update(updater, fail=True)
+        self.assertTrue(updater.staff_matches())
+        self.assertFalse(any(row['running'] for row in updater.containers.values()))
+        self.assertTrue((updater.backup / 'staff-environment.before').is_file())
+
+    def test_active_release_with_changed_mapping_is_reconfigured_by_one_restart(self):
+        updater = self.staff_updater()
+        self.run_update(updater)
+        updater.setting = '{"thing1":"serviceName"}'
+        self.run_update(updater)
+        self.assertEqual(updater.trace.count('launch'), 2)
+        self.assertTrue(updater.staff_matches(runtime=True))
+
+    def test_staff_config_only_changes_two_explicit_environment_keys(self):
+        updater = self.staff_updater()
+        original = updater.environment.read_text()
+        rendered = UPDATE.staff_environment(original, updater.staff_config)
+        for line in original.splitlines():
+            if not line.startswith(('SERVICE_TEMPLATE_ID=', 'SERVICE_TEMPLATE_MAPPING=')):
+                self.assertIn(line + '\n', rendered)
+        with self.assertRaisesRegex(UPDATE.UpdateError, 'Duplicate'):
+            UPDATE.staff_environment(original + 'SERVICE_TEMPLATE_ID=duplicate\n', updater.staff_config)
+        for value in ({}, {'appId': 'bad', 'templateId': 'bad', 'mapping': {}},
+                      {**updater.staff_config, 'mapping': {'phone_number9':'secret'}}):
+            with self.assertRaises(UPDATE.UpdateError):
+                UPDATE.staff_template({'staffNotification': value})
 
 
 if __name__ == '__main__':

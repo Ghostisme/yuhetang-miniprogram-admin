@@ -1,0 +1,66 @@
+# 店长通知与服务号菜单整体更新 {{RELEASE_ID}}
+
+本包更新已有管理后台和 Java。前端逐文件使用已确认的 `yuhetang-admin-{{ADMIN_RELEASE}}.zip` 产物；Java 配套服务号菜单接口及 V10 数据库迁移。客户预约处理、到店提醒已由用户确认收件，保留其模板和字段映射。
+
+## 上传与执行
+
+将 `yuhetang-full-update-{{RELEASE_ID}}.tar.gz` 和同名 `.tar.gz.sha256` 上传到服务器 `/home/ubuntu`，逐行执行：
+
+```bash
+cd /home/ubuntu
+sha256sum --check yuhetang-full-update-{{RELEASE_ID}}.tar.gz.sha256
+tar -xzf yuhetang-full-update-{{RELEASE_ID}}.tar.gz
+sudo bash /home/ubuntu/yuhetang-full-update-{{RELEASE_ID}}/update.sh
+```
+
+预期输出 `SUCCESS: SERVER RELEASE {{RELEASE_ID}}`，镜像 `yuhetang-java-api:{{RELEASE_ID}}`、`Health=healthy`。JAR SHA256：`{{JAVA_SHA256}}`。重复执行会核对运行版本、环境变量、数据库映射和前端；全部一致时不再重启。
+
+默认站点根目录为 `/opt/1panel/www/sites/mp-admin/index`，域名 `mp-admin.hetuonian.cn`。保留当前 1Panel / OpenResty 的域名、证书、反向代理及 `MP_verify_*.txt` 校验文件。旧 `yuwatang-reservation.service` 应保持停用；若它又处于活动或开机启用状态，更新器会在停 Java 前指出端口冲突风险。
+
+更新器先校验全部包文件、构建 Java 镜像，再停止本项目旧 Java，并备份独立 `yuwatang_reservation` 库、上传文件、环境及前端，保存到 `/var/backups/yuhetang-unified/`。旧容器保留。新 Java 启动执行缺失迁移，菜单使用 V10 新表。新 Java 健康后发布前端资源，最后原子替换 HTML 入口。
+
+本次不安装或重建 MySQL，不执行初始化数据导入；此前导入的门店、品项、调理师和客户记录继续保留。小程序客户端不在本包中，也无需因本次模板配置及管理后台菜单功能重新上传。服务器上运行与真实微信收件需按下文验收，本地校验不能代替。
+
+## 本次店长模板修正
+
+使用服务号 **模板消息**，不是该服务号的「订阅通知」：
+
+- AppID：`wxf9ad4dfd7684097a`。
+- 模板：44760「客户预约订单处理通知」。
+- 私有 ID：`VCNcEJHWic3yXHkcsjoyG--YjIVPGdw50G6zh2QQZqk`。
+
+| 字段键 | 模板字段 | 业务字段 |
+| --- | --- | --- |
+| `thing10` | 预约门店 | `storeName` |
+| `thing14` | 预约项目 | `serviceName` |
+| `time12` | 预约时间 | `time` |
+| `thing16` | 客户名称 | `customerName` |
+| `phone_number9` | 手机号 | `customerPhone` |
+
+更新器会先核对现有文件及运行中 Java 的服务号 AppID，备份后只修改环境变量 `SERVICE_TEMPLATE_ID`、`SERVICE_TEMPLATE_MAPPING` 和独立库里 `app_setting.serviceTemplateMapping`。已有服务号 AppSecret、小程序凭证、客服配置及各店接收人绑定保持原值。新 Java 容器会读取修改后的环境变量，无需另外重启。
+
+之前 `uxrBTYh7rLOfcO0GKajIKEpFeQ2OtY0prH8a9WBVxrk` 属于「订阅通知」，不能继续填进模板消息配置。只修改 env 映射不能覆盖数据库已经保存的旧映射，因此本包同时修正两处。不会重发历史 40037 阻断记录。
+
+## 部署后验收
+
+1. 浏览器打开 `https://mp-admin.hetuonian.cn/admin`，按 Ctrl+F5 强制刷新；总部账号应看到「服务号菜单」。
+2. 进入「消息中心 → 管理后台消息推送」，点击「检查店长服务号配置」。应显示凭证、正式模板和五字段匹配；此检查不发送消息。
+3. 选择测试门店，确认「门店接收人微信提醒」已开启并保存、本店接收人已完成本人绑定且关注此服务号。已有有效绑定不需重复操作。
+4. 客户微信创建一笔新的测试预约，**先不要确认预约**。等 10～30 秒，在服务号查看店长通知，同时按新预约编号核对消息中心 SERVICE / 新预约申请记录。微信接口受理和手机收到分别核对。
+5. 店长已收到后，再确认该预约。客户已验证通过的处理及到店提醒链路继续按本店规则运行。
+
+历史预约已经确认、取消或状态版本改变时，旧待接单任务会停止。不要通过重发旧阻断记录测试新配置。
+
+## 服务号菜单
+
+更新只提供页面、接口、草稿存储及权限，**不自动发布微信菜单**。
+
+进入「服务号菜单」，首次会预填「在线预约、门店查询、我的预约」。可先点「读取微信菜单」核对或载入此前在微信配置的菜单，再修改、保存草稿。确认预览后点击「发布到微信 → 确认发布」。发布前自动备份微信当前默认菜单；必须收到微信成功响应才显示“微信已接受”。
+
+菜单中的小程序 AppID 和页面路径须对应已关联的正式小程序；重新进入服务号核对入口。具体编辑、权限与恢复方式见 `docs/服务号菜单配置.md`。旧平台若仍同步菜单，需要停止其菜单同步，避免覆盖。
+
+## 失败恢复
+
+镜像准备或配置检查失败时保留旧 Java。停止旧 Java 后若失败，更新器检查数据库结构：结构未改变时恢复此前店长配置和前端入口并重启旧 Java；若迁移已改变结构，则停止新容器的自动重启、保留失败容器和私密启动日志，保留数据库及备份等待定位，不自动将数据库覆盖回旧状态。
+
+遇到 `STOP` 或 `RECOVERY REQUIRED`，保留最后输出中的容器名、备份路径和错误；不要重复运行旧初始化脚本或手动启用旧 systemd Java。
