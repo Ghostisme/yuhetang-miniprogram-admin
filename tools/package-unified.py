@@ -172,6 +172,12 @@ def main():
                 for p in (mini / 'dist/h5').rglob('*') if p.is_file()}
     require(login_report.get('h5Files') == built_h5, 'Login verification does not match the current H5 build')
     payload['validation/client-login.json'] = (json.dumps(login_report, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+    development_report = json.loads((mini / 'backups/login-development-verification/result.json').read_text(encoding='utf-8'))
+    require(development_report['status'] == 'passed' and not development_report['liveApisUsed']
+            and development_report.get('buildMode') == 'development-fixture', 'Missing isolated login success/cancellation verification')
+    payload['validation/client-login-development.json'] = (json.dumps(development_report, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+    for screenshot in ('login-390.png', 'login-sheet-390.png'):
+        payload['docs/login-preview/' + screenshot] = (mini / 'backups/login-verification' / screenshot).read_bytes()
     payload['validation/client-unit-tests.txt'] = (mini / 'backups/login-unit-tests.txt').read_bytes()
     payload['docs/小程序客户登录说明.md'] = (mini / 'README.md').read_bytes()
     for source, target in (('backups/customer-chat-verification/result.json', 'admin-chat.json'),
