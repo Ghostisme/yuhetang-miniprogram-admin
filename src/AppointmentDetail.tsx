@@ -6,6 +6,7 @@ import type {Appointment,Slots,Therapist} from './types'
 import {api,claimLabels,dateInput,displayTime,statusLabels} from './api'
 import {ActionButton,SelectInput,TextArea,TextInput} from './components/AdminControls'
 import './appointment-detail.css'
+import PaymentReservation from './PaymentReservation'
 
 const sources:Record<string,string>={MINIPROGRAM:'小程序',PHONE:'电话',WECHAT:'微信',DIANPING:'大众点评',WALKIN:'到店'}
 function Status({status}:{status:string}){return <Tag color={status==='CONFIRMED'?'success':status==='PENDING'?'warning':'default'}>{statusLabels[status]||status}</Tag>}
@@ -37,7 +38,9 @@ export default function AppointmentDetail({ctx,appointment:b,onClose,onUpdate}:{
       <div className="appointment-facts"><h3>{b.customerName} · {b.serviceName}</h3><p className="appointment-current-time">{b.storeName}<br/>{b.bookingDate} {b.startTime} · {b.headcount} 人同行</p>
         <dl><dt>联系电话</dt><dd>{phone||b.phone} {ctx.can('appointments:phone')&&!phone&&<ActionButton className="a-link" onClick={()=>api(`/api/admin/appointments/${encodeURIComponent(b.id)}/phone`).then(r=>setPhone(r.phone)).catch(e=>setError(e.message))}>查看完整电话（留痕）</ActionButton>}</dd>
           <dt>意向调理师</dt><dd>{b.therapistIntentName} · 以门店安排为准</dd><dt>实际分配</dt><dd>{b.assignedTherapistName}</dd>
-          <dt>会员 / 到店自述</dt><dd>{claimLabels[b.memberClaim]} / {claimLabels[b.visitedClaim]}（待门店核实）</dd><dt>客户备注</dt><dd>{b.remark||'未填写'}</dd><dt>预约来源</dt><dd>{sources[b.source]||b.source}</dd>
+          <dt>会员核实</dt><dd>{b.membership?.memberVerified?<><Tag color='gold'>{b.membership.memberGrade||'会员'}</Tag>{b.membership.crossStore&&<Tag color='green'>会员跨店预约</Tag>}</>:b.membership?.status==='LEGACY_UNKNOWN'?'历史记录未核实':'非会员 / 尚未核实'}</dd>
+          {b.membership?.memberVerified&&<><dt>会员归属门店</dt><dd>{b.membership.memberStoreName||'待总部确认'}</dd><dt>本次接待门店</dt><dd>{b.storeName}</dd></>}
+          <dt>会员 / 到店自述</dt><dd>{claimLabels[b.memberClaim]} / {claimLabels[b.visitedClaim]}（本人自述）</dd><dt>客户备注</dt><dd>{b.remark||'未填写'}</dd><dt>预约来源</dt><dd>{sources[b.source]||b.source}</dd>
         </dl>
         {request&&<section className={`reschedule-review ${pending?'is-pending':''}`} aria-label="客户改约申请">
           <header><h4>客户改约申请</h4><Tag color={pending?'warning':'default'}>{request.statusLabel}</Tag></header>
@@ -45,6 +48,7 @@ export default function AppointmentDetail({ctx,appointment:b,onClose,onUpdate}:{
           {request.requestNote&&<p>客户说明：{request.requestNote}</p>}
           {pending?<><p>处理前保留原预约；新时段将在确认时重新核对名额。</p><p>处理期限：{displayTime(request.expiresAt)}</p></>:<p>{request.resolutionNote||'请以当前预约时间和状态为准。'}</p>}
         </section>}
+        {ctx.can('payments:read')&&<PaymentReservation ctx={ctx} appointment={b}/>}
       </div>
       <div className="detail-actions"><h4>门店处理</h4><TextArea aria-label="处理说明" value={note} onChange={e=>setNote(e.target.value)} maxLength={500} placeholder={pending?'未通过改约时，请填写原因；原预约会保留':'处理说明 / 无法接待原因 / 本店跟进备注'}/>
         {pending&&ctx.can('appointments:review')&&<div className="reschedule-review-actions"><ActionButton disabled={busy} className="a-primary" onClick={()=>void action('approve_reschedule')}>确认改约并通知客户</ActionButton><ActionButton disabled={busy} className="a-secondary" onClick={()=>void action('reject_reschedule')}>改约未通过，保留原预约</ActionButton></div>}

@@ -1,0 +1,7 @@
+.payment-reservation{margin-top:22px;padding-top:18px;border-top:1px solid var(--border,#e2e7dc)}
+.payment-reservation header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.payment-reservation header h4{margin:0}
+.payment-reservation p{font-size:13px;line-height:1.7;color:var(--muted,#70816e);margin:10px 0}
+.payment-reservation-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:14px 0}
+.payment-reservation-note{padding:10px 12px;border-radius:6px;background:#f3f5ec}
+@media(max-width:600px){.payment-reservation-fields{grid-template-columns:1fr}}

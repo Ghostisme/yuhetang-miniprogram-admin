@@ -12,7 +12,7 @@ const now='2026-11-08T10:00:00+08:00'
 async function fixture({readonly=false,branch=false}={}){
   const context=await browser.newContext({viewport:{width:1440,height:1000}});contexts.push(context)
   const state={calls:[],rows:[
-    {id:'member',name:'王女士',registeredName:'小王',phone:'139****3001',storeId:'shanghai',memberVerified:true,memberGrade:'金卡',sharedNote:'原有提示',privateNote:'本店跟进',sources:['MINIPROGRAM','DIANPING'],firstLoginAt:now,lastLoginAt:now,phoneVerified:true},
+    {id:'member',name:'王女士',registeredName:'小王',phone:'139****3001',storeId:'shanghai',memberVerified:true,memberGrade:'金卡',originalStoreId:'yuyao',memberStoreName:'余姚路店',sharedNote:'原有提示',privateNote:'本店跟进',sources:['MINIPROGRAM','DIANPING'],firstLoginAt:now,lastLoginAt:now,phoneVerified:true},
     {id:'nonmember',name:'李先生',phone:'139****3002',storeId:'',memberVerified:false,memberGrade:'',sources:['MINIPROGRAM'],firstLoginAt:now,lastLoginAt:now,phoneVerified:true},
     {id:'registration',name:'新登录客户',phone:'',storeId:'',memberVerified:false,sources:['MINIPROGRAM'],registrationOnly:true,firstLoginAt:now,lastLoginAt:now,phoneVerified:false},
   ]}
@@ -30,7 +30,7 @@ async function fixture({readonly=false,branch=false}={}){
     state.calls.push({path,method,query:url.search})
     const json=data=>route.fulfill({json:data})
     if(path==='/api/admin/me')return json({id:'fixture-admin',name:'测试管理员',hq:!branch,storeId:branch?'shanghai':'',roleIds:[],permissions:['customers:read',...(!readonly?['customers:write','appointments:phone',...(!branch?['customers:master']:[])]:[])]})
-    if(path==='/api/admin/stores')return json([{id:'shanghai',name:'上海中心店',enabled:true}])
+    if(path==='/api/admin/stores')return json([{id:'shanghai',name:'上海中心店',enabled:true},{id:'yuyao',name:'余姚路店',enabled:true}])
     if(path==='/api/site')return json({brandName:'裕和堂',theme:'sage',hero:{},contact:{},stores:[],services:[],products:[],sections:[],galleryGroups:[]})
     if(path==='/api/runtime')return json({customerProfiles:true,developmentLogin:false})
     if(path==='/api/admin/customers'&&method==='GET'){
@@ -69,11 +69,13 @@ try{
   await page.getByRole('dialog').waitFor()
   await page.getByRole('dialog').evaluate(async element=>{await Promise.all(element.getAnimations({subtree:true}).map(animation=>animation.finished.catch(()=>{})))})
   await page.screenshot({path:resolve(output,'customer-member-edit.png')})
+  await select(page,'会员归属门店','上海中心店')
   await page.getByRole('switch',{name:'会员标识'}).click()
   await page.getByRole('button',{name:'保存档案',exact:true}).click()
   await page.getByRole('dialog').waitFor({state:'detached'})
   await page.getByText('当前条件下暂无客户档案',{exact:true}).waitFor()
   assert.equal(state.rows[0].memberVerified,false)
+  assert.equal(state.rows[0].originalStoreId,'shanghai','Headquarters explicitly maintains the member home independently from a booking store')
   assert.deepEqual(state.rows[0].sources,['MINIPROGRAM','DIANPING'])
   await select(page,'会员状态','全部会员状态');await rows(page,1)
   assert.equal(await page.locator('tbody tr').getByText('非会员',{exact:true}).count(),1)
@@ -86,6 +88,7 @@ try{
   const scoped=await fixture({branch:true});await rows(scoped.page,1)
   await scoped.page.getByRole('button',{name:'维护档案',exact:true}).click()
   assert.equal(await scoped.page.getByRole('switch',{name:'会员标识'}).count(),0)
+  assert.equal(await scoped.page.getByRole('combobox',{name:'会员归属门店'}).count(),0)
   assert.equal(await scoped.page.getByText('本店私有跟进',{exact:true}).count(),1)
   const readonly=await fixture({readonly:true})
   assert.equal(await readonly.page.getByRole('button',{name:'维护档案',exact:true}).count(),0)
