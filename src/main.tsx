@@ -8,5 +8,6 @@ import './brand.css'
 import './app.css'
 import './admin-layout.css'
 import './antd-admin.css'
+import './admin-responsive.css'
 
 createRoot(document.getElementById('root')!).render(<React.StrictMode><ConfigProvider locale={zhCN} theme={adminTheme}><App><Admin/></App></ConfigProvider></React.StrictMode>)

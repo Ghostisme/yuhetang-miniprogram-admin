@@ -1,3 +1,4 @@
+import ResponsiveTable from './components/ResponsiveTable'
 import {ActionButton,TextInput,SelectInput,TextArea,DisabledFieldset} from './components/AdminControls'
 import {useEffect,useRef,useState,type ReactNode} from 'react'
 import {ChevronLeft,ChevronRight,RefreshCw,X} from 'lucide-react'
@@ -35,7 +36,7 @@ export function DianpingIntegration({ctx}:{ctx:Ctx}){
     {data&&<>
       <div className="dianping-mappings">
         <div><h4>点评门店 → 本地门店</h4>
-          <div className="table-scroll"><table className="ops-table"><thead><tr><th>点评门店 / 编号</th><th>本地门店</th>{canWrite&&<th>操作</th>}</tr></thead><tbody>{data.shops.map((s:Row)=><tr key={s.externalShopId}><td>{s.externalShopName}<small>{s.externalShopId}</small></td><td>{data.stores.find((local:Row)=>local.id===s.storeId)?.name}</td>{canWrite&&<td><ActionButton className="a-link" disabled={busy} onClick={()=>setShop({...s})}>编辑映射</ActionButton></td>}</tr>)}</tbody></table></div>
+          <div className="table-scroll"><ResponsiveTable className="ops-table"><thead><tr><th>点评门店 / 编号</th><th>本地门店</th>{canWrite&&<th>操作</th>}</tr></thead><tbody>{data.shops.map((s:Row)=><tr key={s.externalShopId}><td>{s.externalShopName}<small>{s.externalShopId}</small></td><td>{data.stores.find((local:Row)=>local.id===s.storeId)?.name}</td>{canWrite&&<td><ActionButton className="a-link" disabled={busy} onClick={()=>setShop({...s})}>编辑映射</ActionButton></td>}</tr>)}</tbody></ResponsiveTable></div>
           {!data.shops.length&&<p className="data-empty">尚未配置点评门店映射</p>}
           {canWrite&&<form onSubmit={e=>void save('shops',e)}><DisabledFieldset disabled={busy}>
             <Field label="点评门店编号"><TextInput required maxLength={100} value={shop.externalShopId} readOnly={shop.revision>0} onChange={e=>setShop({...shop,externalShopId:e.target.value})}/></Field>
@@ -45,7 +46,7 @@ export function DianpingIntegration({ctx}:{ctx:Ctx}){
           </DisabledFieldset></form>}
         </div>
         <div><h4>点评品项 → 本店养护项目</h4>
-          <div className="table-scroll"><table className="ops-table"><thead><tr><th>点评品项 / 门店</th><th>本店项目</th>{canWrite&&<th>操作</th>}</tr></thead><tbody>{data.products.map((p:Row)=>{const sid=data.shops.find((s:Row)=>s.externalShopId===p.externalShopId)?.storeId,store=data.stores.find((s:Row)=>s.id===sid);return <tr key={p.externalShopId+':'+p.externalProductId}><td>{p.externalProductName}<small>{p.externalProductId} · {p.externalShopId}</small></td><td>{store?.services.find((s:Row)=>s.id===p.serviceId)?.name||'项目已移除'}<small>{store?.name}</small></td>{canWrite&&<td><ActionButton className="a-link" disabled={busy} onClick={()=>setProduct({...p})}>编辑映射</ActionButton></td>}</tr>})}</tbody></table></div>
+          <div className="table-scroll"><ResponsiveTable className="ops-table"><thead><tr><th>点评品项 / 门店</th><th>本店项目</th>{canWrite&&<th>操作</th>}</tr></thead><tbody>{data.products.map((p:Row)=>{const sid=data.shops.find((s:Row)=>s.externalShopId===p.externalShopId)?.storeId,store=data.stores.find((s:Row)=>s.id===sid);return <tr key={p.externalShopId+':'+p.externalProductId}><td>{p.externalProductName}<small>{p.externalProductId} · {p.externalShopId}</small></td><td>{store?.services.find((s:Row)=>s.id===p.serviceId)?.name||'项目已移除'}<small>{store?.name}</small></td>{canWrite&&<td><ActionButton className="a-link" disabled={busy} onClick={()=>setProduct({...p})}>编辑映射</ActionButton></td>}</tr>})}</tbody></ResponsiveTable></div>
           {!data.products.length&&<p className="data-empty">尚未配置点评品项映射</p>}
           {canWrite&&<form onSubmit={e=>void save('products',e)}><DisabledFieldset disabled={busy}>
             <Field label="品项所属点评门店"><SelectInput aria-label="品项所属点评门店" required value={product.externalShopId} disabled={product.revision>0} onChange={e=>setProduct(blankProduct(e.target.value))}><option value="">选择已映射门店</option>{data.shops.map((s:Row)=><option key={s.externalShopId} value={s.externalShopId}>{s.externalShopName} · {s.externalShopId}</option>)}</SelectInput></Field>
@@ -56,7 +57,7 @@ export function DianpingIntegration({ctx}:{ctx:Ctx}){
         </div>
       </div>
       {!canWrite&&<p className="field-note">修改映射和导入资料需由总部角色授予“导入初始资料”权限。</p>}
-      {data.batches.length>0&&<><h4>最近导入记录</h4><div className="table-scroll"><table className="ops-table"><thead><tr><th>导入时间 / 操作人</th><th>文件 / 类型</th><th>处理结果</th></tr></thead><tbody>{data.batches.map((b:Row)=><tr key={b.id}><td>{displayTime(b.createdAt)}<small>{b.actorName}</small></td><td>{b.sourceName}<small>{b.kind==='ORDERS'?'点评订单':'点评客户'}</small></td><td>新增 {b.createdCount} · 更新 {b.updatedCount} · 跳过 {b.skippedCount}</td></tr>)}</tbody></table></div></>}
+      {data.batches.length>0&&<><h4>最近导入记录</h4><div className="table-scroll"><ResponsiveTable className="ops-table"><thead><tr><th>导入时间 / 操作人</th><th>文件 / 类型</th><th>处理结果</th></tr></thead><tbody>{data.batches.map((b:Row)=><tr key={b.id}><td>{displayTime(b.createdAt)}<small>{b.actorName}</small></td><td>{b.sourceName}<small>{b.kind==='ORDERS'?'点评订单':'点评客户'}</small></td><td>新增 {b.createdCount} · 更新 {b.updatedCount} · 跳过 {b.skippedCount}</td></tr>)}</tbody></ResponsiveTable></div></>}
     </>}
   </section>
 }
@@ -76,10 +77,10 @@ export function DianpingOrders({ctx,onOpen}:{ctx:Ctx;onOpen:(booking:Appointment
     <div className="card-heading"><div><h3>大众点评订单</h3><p>平台订单与本地预约分别保留。确认到店时间后，生成来源为“大众点评”的本店预约。</p></div><ActionButton aria-label="刷新点评订单" onClick={()=>setRevision(v=>v+1)}><RefreshCw size={16}/></ActionButton></div>
     <div className="table-filters"><TextInput aria-label="搜索点评订单" value={search} maxLength={100} onChange={e=>{setSearch(e.target.value);setPage(1)}} placeholder="精确搜索点评订单或品项编号"/><SelectInput aria-label="点评订单状态" value={status} onChange={e=>{setStatus(e.target.value);setPage(1)}}><option value="">全部平台状态</option>{Object.entries(labels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</SelectInput></div>
     {error&&<div className="admin-error" role="alert">{error}</div>}
-    <div className="table-scroll"><table className="ops-table"><thead><tr><th>点评订单 / 明细</th><th>门店 / 项目</th><th>客户 / 平台时间</th><th>平台状态 / 金额</th><th>本地预约</th></tr></thead><tbody>{data.items.map(row=><tr key={row.id}>
+    <div className="table-scroll"><ResponsiveTable className="ops-table"><thead><tr><th>点评订单 / 明细</th><th>门店 / 项目</th><th>客户 / 平台时间</th><th>平台状态 / 金额</th><th>本地预约</th></tr></thead><tbody>{data.items.map(row=><tr key={row.id}>
       <td><strong>{row.externalOrderId}</strong><small>明细 {row.externalLineId}</small></td><td>{row.serviceName}<small>{row.storeName}</small></td><td>{row.customerName} · {row.phone||'未提供电话'}<small>{row.bookingDate?`${row.bookingDate} ${row.startTime}`:'平台未提供预约时间'} · {row.headcount}人</small></td><td>{labels[row.orderStatus]}<small>¥{(row.amountFen/100).toFixed(2)}</small></td>
       <td>{row.appointmentId?<><ActionButton className="a-link" onClick={()=>void open(row)}>查看关联预约</ActionButton><small>{row.appointmentId}</small></>:ctx.can('appointments:write')&&['PAID','BOOKED'].includes(row.orderStatus)?<ActionButton className="a-link" onClick={()=>setSelected(row)}>确认到店预约</ActionButton>:<span>尚未关联预约</span>}{row.needsReview&&<div className="dianping-review"><strong>平台资料已更新，待核对预约</strong>{ctx.can('appointments:write')&&<ActionButton disabled={busy} className="a-link" onClick={()=>void reviewed(row)}>已核对平台更新</ActionButton>}</div>}</td>
-    </tr>)}</tbody></table></div>
+    </tr>)}</tbody></ResponsiveTable></div>
     {!data.items.length&&<div className="data-empty">暂无大众点评订单，请由总部在“资料导入”导入点评文件。</div>}
     <div className="pager"><Pagination current={page} pageSize={20} total={data.total} showSizeChanger={false} showTotal={total=>`共 ${total} 条记录`} onChange={setPage}/></div>
     {selected&&<ConvertOrder row={selected} onClose={()=>setSelected(null)} onSaved={booking=>{setSelected(null);ctx.notify('点评订单已关联本店预约。');onOpen(booking)}}/>}

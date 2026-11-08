@@ -34,6 +34,7 @@ export default function AppointmentDetail({ctx,appointment:b,onClose,onUpdate}:{
   }
   return <Modal open centered title="预约详情与处理" onCancel={onClose} footer={null} width={1040} destroyOnHidden className="admin-modal appointment-detail">
     <div className="detail-status"><Status status={b.status}/><span>{b.id}</span><ActionButton aria-label="刷新预约详情" disabled={busy} onClick={()=>refresh().catch(e=>setError(e.message))}><RefreshCw size={15}/></ActionButton></div>
+    <div className="appointment-mobile-summary"><h3>{b.customerName} · {b.serviceName}</h3><p>{b.storeName} · {b.bookingDate} {b.startTime} · {b.headcount} 人同行</p></div>
     <div className="detail-grid">
       <div className="appointment-facts"><h3>{b.customerName} · {b.serviceName}</h3><p className="appointment-current-time">{b.storeName}<br/>{b.bookingDate} {b.startTime} · {b.headcount} 人同行</p>
         <dl><dt>联系电话</dt><dd>{phone||b.phone} {ctx.can('appointments:phone')&&!phone&&<ActionButton className="a-link" onClick={()=>api(`/api/admin/appointments/${encodeURIComponent(b.id)}/phone`).then(r=>setPhone(r.phone)).catch(e=>setError(e.message))}>查看完整电话（留痕）</ActionButton>}</dd>

@@ -1,0 +1,265 @@
+/* Breakpoints: phones <768px, drawer navigation <1024px, full desktop >=1024px. */
+.ops-crumbs { min-width:0; }
+.ops-crumbs > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ops-crumbs strong { font-weight:500; }
+.ops-crumb-separator { margin:0 8px; color:#a1ab9a; }
+#root .operations .ops-menu-toggle { display:none; }
+.appointment-cards,.chat-mobile-back,.appointment-mobile-summary { display:none; }
+.admin-modal .ant-modal-body .ant-btn { font-size:14px; }
+.ops-mobile-navigation { display:flex; flex-direction:column; height:100%; min-height:0; color:#43583e; }
+.ops-mobile-navigation .ops-brand { display:block; padding:18px 24px 24px; }
+.ops-mobile-navigation nav { flex:1; min-height:0; overflow-y:auto; padding:0 16px 16px; }
+.ops-mobile-navigation nav .ant-btn { display:flex; align-items:center; justify-content:flex-start; width:100%; min-height:48px; padding:0 14px; margin-bottom:4px; gap:12px; font-size:14px; text-align:left; color:#52634e; }
+.ops-mobile-navigation nav .ant-btn > span { flex:1; text-align:left; }
+.ops-mobile-navigation nav .active { background:#e8efdf; color:#435e37; }
+.ops-mobile-navigation nav i { padding:2px 6px; border-radius:4px; font-size:11px; font-style:normal; background:#edf1e8; }
+.ops-mobile-navigation nav .chat-unread { background:#b54f40; color:white; }
+.ops-mobile-navigation .ops-side-footer { display:flex; padding:20px 24px; }
+.ops-mobile-navigation .ops-side-footer strong { font-size:13px; }
+.ops-mobile-navigation .ops-side-footer span { font-size:12px; }
+.admin-navigation-drawer .ant-drawer-header-title { flex-direction:row-reverse; }
+.admin-navigation-drawer .ant-drawer-close { min-width:44px; min-height:44px; }
+.admin-navigation-drawer .ant-drawer-header { padding:8px 16px; }
+#root .operations .wm-tree-actions .ant-btn { width:32px; min-width:32px; height:32px; min-height:32px; }
+
+/* Filters can wrap and customer profiles have a second panel below the list.
+   Preserve usable rows instead of shrinking the scroller behind its header. */
+@media (min-width:768px) {
+  .operations .ops-main:is([data-page=appointments],[data-page=customers],[data-page=users],[data-page=audit]) > .ops-card:has(> .table-scroll) { min-height:min-content; flex-shrink:0; }
+  .operations .ops-main:is([data-page=appointments],[data-page=customers],[data-page=users],[data-page=audit]) > .ops-card > .table-scroll { min-height:220px; max-height:60dvh; flex:1 1 auto; }
+}
+
+@media (min-width:1024px) and (max-width:1250px) {
+  .operations .ops-sidebar { width:208px; }
+  .operations .ops-body { margin-left:208px; }
+  .operations .ops-main { padding:24px; }
+  .operations .chat-workspace { grid-template-columns:250px minmax(0,1fr); }
+}
+
+@media (max-width:1023px) {
+  .operations { height:100dvh; min-height:0; overflow:hidden; font-size:14px; }
+  .operations .ops-sidebar { display:none; }
+  .operations .ops-body { display:flex; flex-direction:column; height:100%; min-height:0; margin-left:0; }
+  .operations .ops-topbar { flex-shrink:0; height:64px; padding:0 20px; position:relative; }
+  .operations .ops-topbar > div { gap:12px; margin-left:0; }
+  .operations .ops-topbar > .ops-crumbs { gap:10px; font-size:14px; }
+  #root .operations .ops-menu-toggle { display:inline-flex; width:44px; height:44px; min-height:44px; padding:0; }
+  .operations .ops-main { flex:1; min-height:0; padding:24px 20px; overflow:auto; overscroll-behavior:contain; }
+  .operations .ops-page-heading { gap:16px; margin-bottom:20px; align-items:center; }
+  .operations .ops-page-heading h1 { margin-top:5px; font-size:26px; }
+  .operations .ops-page-heading p { max-width:none; margin-top:6px; font-size:13px; }
+  .operations .eyebrow { font-size:9px; letter-spacing:1.4px; }
+  .operations .ops-footer { flex-shrink:0; padding:12px 20px; font-size:10px; }
+  .operations .content-workspace { display:block; }
+  .operations .ops-card { padding:20px; }
+  .operations .card-heading h3,.operations .ops-card > h3 { font-size:16px; }
+  .operations .card-heading p,.operations .ops-card > p { font-size:13px; }
+  .operations .table-filters { gap:10px; }
+  .operations .search-input { min-width:220px; flex:1; }
+  .operations .stat-card > span { font-size:13px; }
+  .operations .stat-card p { font-size:12px; }
+  .operations .review-banner strong { font-size:14px; }
+  .operations .review-banner p > span { font-size:12px; line-height:1.7; }
+  .operations .therapist-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .operations .inbox-popover { right:16px; top:68px; max-width:calc(100vw - 32px); max-height:calc(100dvh - 88px); }
+}
+
+@media (max-width:767px) {
+  .operations .ops-topbar { height:60px; padding:0 12px; }
+  .operations .ops-topbar > div { gap:4px; }
+  .operations .ops-topbar > .ops-crumbs { gap:4px; }
+  .operations .ops-crumbs > span { font-size:13px; }
+  .operations .ops-crumb-separator { margin:0 4px; }
+  .operations .ops-topbar .current-user,.operations .ops-topbar .user-avatar { display:none; }
+  .operations .ops-main { padding:20px 16px 24px; scrollbar-gutter:auto; }
+  #root .operations .ops-page-heading { display:flex; align-items:flex-start; flex-direction:column; gap:12px; }
+  .operations .ops-page-heading h1 { margin:4px 0 0; font-size:25px; letter-spacing:1px; }
+  .operations .ops-page-heading p { font-size:13px; line-height:1.7; }
+  .operations .ops-page-heading .eyebrow,.operations .ops-main[data-page=appointments] > .ops-page-heading p { display:none; }
+  #root .operations .scope-control { width:100%; max-width:none; margin-top:0; }
+  #root .operations .scope-control .admin-select { flex:1; width:100%; min-width:0; }
+  .operations .scope-control svg { display:block; flex-shrink:0; }
+  .operations .ops-footer { padding:10px 16px calc(10px + env(safe-area-inset-bottom)); font-size:10px; gap:10px; }
+  .operations .ops-footer > span:last-child { display:none; }
+  #root :is(.operations,.admin-login) .ant-btn,.admin-modal .ant-btn { min-height:44px; height:auto; font-size:14px; line-height:1.5; padding:10px 12px; white-space:normal; }
+  #root .operations .wm-tree-actions .ant-btn { width:44px; min-width:44px; height:44px; min-height:44px; }
+  #root .operations .ant-btn:has(> svg:only-child) { width:44px; min-width:44px; padding:0; }
+  #root .operations .segmented > .ant-btn { min-height:44px; height:auto; font-size:13px; padding:8px 12px; }
+  #root :is(.operations,.admin-login) .ant-input,.admin-modal .ant-input { min-height:44px; font-size:16px; }
+  #root :is(.operations,.admin-login) .ant-input::placeholder,.admin-modal .ant-input::placeholder { font-size:14px; }
+  #root .operations .ant-input-affix-wrapper,.admin-modal .ant-input-affix-wrapper { min-height:44px; }
+  .operations .admin-select,.admin-modal .admin-select { min-width:0; }
+  .operations .admin-select .ant-select,.admin-modal .admin-select .ant-select { min-height:44px; font-size:16px; }
+  .admin-select-popup .ant-select-item { min-height:44px; display:flex; align-items:center; white-space:normal; }
+  .admin-select-popup { max-width:calc(100vw - 24px); }
+  .operations .ops-card { padding:16px; border-radius:10px; margin-bottom:16px; }
+  .operations .card-heading { align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+  .operations .card-heading > div,.operations .card-heading > .button-row { min-width:0; max-width:100%; }
+  .operations .button-row { gap:8px; }
+  .operations .card-heading > .segmented { width:100%; }
+  .operations .ops-main[data-page=appointments] .card-heading > .segmented { display:flex; flex-wrap:nowrap; gap:4px; }
+  #root .operations .ops-main[data-page=appointments] .card-heading > .segmented > .ant-btn { flex:1; min-width:0; padding:8px 6px; font-size:12px; white-space:nowrap; }
+  .operations .dashboard-welcome { height:190px; margin-bottom:16px; }
+  .operations .dashboard-welcome > div { padding:20px; }
+  .operations .dashboard-welcome h2 { font-size:22px; max-width:240px; line-height:1.55; }
+  .operations .dashboard-welcome p { font-size:13px; max-width:220px; }
+  .operations .dashboard-welcome > img { width:45%; opacity:.35; }
+  .operations .dashboard-welcome > div > span { font-size:9px; }
+  .operations .stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
+  .operations .stat-card { padding:16px 12px; min-height:138px; }
+  .operations .stat-card > strong { font-size:32px; }
+  .operations .stat-card > svg { width:18px; right:10px; }
+  .operations .stat-card > span { font-size:13px; }
+  .operations .stat-card p { font-size:11px; }
+  .operations .dashboard-columns { display:block; }
+  .operations .trend-bars :is(b,span) { font-size:12px; }
+  .operations .source-card .source-row { font-size:13px; }
+  .operations .review-banner { padding:10px 12px; align-items:flex-start; gap:10px; margin-bottom:16px; }
+  .operations .review-banner p > span { display:none; }
+  .operations .review-banner .clock-symbol { font-size:26px; margin-top:4px; }
+  .operations .table-filters { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px; gap:8px; }
+  .operations .table-filters > .search-input { grid-column:1 / -1; min-width:0; width:100%; }
+  .operations .table-filters > .ant-input,.operations .table-filters > .admin-select { width:100%; min-width:0; }
+  .operations .table-filters > .admin-select:only-child { grid-column:1 / -1; }
+  .operations .table-filters .search-input:has(+ .admin-select:last-child) { grid-column:auto; }
+  .operations .search-input { min-width:0; }
+  .operations .table-filters > button { justify-self:start; }
+  .operations .ops-main:is([data-page=appointments],[data-page=customers],[data-page=users],[data-page=audit]) > .ops-card { display:block; flex:none; min-height:0; overflow:visible; }
+  .operations .appointment-table { display:none; }
+  .appointment-cards { display:grid; gap:12px; }
+  .appointment-card { padding:16px; border:1px solid #e0e7db; border-radius:10px; background:#fff; min-width:0; }
+  .appointment-card header { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:12px; }
+  .appointment-card header > strong { font-size:16px; overflow-wrap:anywhere; }
+  .appointment-card header > div { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; }
+  .appointment-card h3 { font-size:16px; font-weight:500; line-height:1.6; margin:0 0 10px; overflow-wrap:anywhere; }
+  .appointment-card-time,.appointment-card-store { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:8px 0; font-size:13px; }
+  .appointment-card-time strong { font-size:15px; font-variant-numeric:tabular-nums; }
+  .appointment-card dl { display:grid; grid-template-columns:82px minmax(0,1fr); gap:8px; padding-top:12px; margin:12px 0; border-top:1px solid #edf1e8; font-size:13px; }
+  .appointment-card dt { color:#78836f; }
+  .appointment-card dd { margin:0; overflow-wrap:anywhere; }
+  .appointment-card footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding-top:12px; border-top:1px solid #edf1e8; }
+  .appointment-card footer > span { color:#76816c; font-size:12px; }
+  .operations .calendar-lanes > div { grid-template-columns:54px minmax(0,1fr); gap:8px; }
+  .operations .calendar-lanes > div > div { grid-template-columns:minmax(0,1fr); }
+  .operations .calendar-booking { padding:16px; overflow-wrap:anywhere; }
+  .operations .pager { overflow:visible; padding-top:16px; margin-top:0; justify-content:center; }
+  .operations .ant-pagination { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+  .operations .ant-pagination-total-text { width:100%; margin:0; }
+  .operations .ant-pagination :is(.ant-pagination-item,.ant-pagination-prev,.ant-pagination-next) { min-width:36px; height:36px; line-height:34px; margin:0; }
+
+  /* Data stays beside its own label; actions no longer require sideways scrolling. */
+  :is(.operations,.admin-modal) .responsive-table { display:block; white-space:normal; }
+  :is(.operations,.admin-modal) .responsive-table { position:relative; }
+  :is(.operations,.admin-modal) .responsive-table thead { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip-path:inset(50%); }
+  :is(.operations,.admin-modal) .responsive-table tbody { display:grid; gap:12px; }
+  :is(.operations,.admin-modal) .responsive-table tr { display:block; border:1px solid #e0e7db; border-radius:8px; padding:8px 12px; background:white; }
+  :is(.operations,.admin-modal) .responsive-table td { display:grid; grid-template-columns:94px minmax(0,1fr); align-items:start; gap:8px; min-width:0; max-width:none; padding:10px 0; border-bottom:1px solid #edf1e8; font-size:13px; white-space:normal; overflow:visible; }
+  :is(.operations,.admin-modal) .responsive-table td::before { content:attr(data-label); color:#7b8572; font-size:12px; line-height:1.8; }
+  :is(.operations,.admin-modal) .responsive-table td:last-child { border-bottom:0; }
+  :is(.operations,.admin-modal) .responsive-cell-content { min-width:0; overflow-wrap:anywhere; }
+  :is(.operations,.admin-modal) .responsive-table :is(strong,small) { font-size:13px; }
+  .operations .table-scroll { overflow:visible; }
+  .operations .customer-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .operations .customer-filters > .ant-input { width:100%; grid-column:1 / -1; }
+  .operations .customer-count { grid-column:1 / -1; font-size:13px; }
+  .operations .shared-lookup .button-row > input { width:100%; }
+  .operations .shared-lookup pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+
+  .operations .form-columns,.admin-modal .form-columns,.operations .checkbox-grid,.admin-modal .checkbox-grid { grid-template-columns:minmax(0,1fr); }
+  :is(.operations,.admin-modal) .admin-field { min-width:0; font-size:14px; }
+  :is(.operations,.admin-modal) .form-columns > .field-wide { grid-column:1 / -1; }
+  .operations .therapist-grid,.operations .roles-grid { grid-template-columns:minmax(0,1fr); }
+  .operations .therapist-card { padding:20px; }
+  .operations .therapist-card h3 { font-size:17px; }
+  .operations .therapist-card .tag-row > span { font-size:12px; }
+  .operations .assets-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .operations .assets-grid > button { min-height:180px; }
+  .operations .assets-grid strong { font-size:13px; overflow-wrap:anywhere; }
+  .operations .assets-grid small { font-size:11px; overflow-wrap:anywhere; }
+  .operations .content-form { padding:16px; }
+  .operations .content-toolbar .segmented { flex-wrap:wrap; overflow:visible; }
+  .operations .content-preview { max-width:100%; }
+  .operations .preview-device { max-width:100%; }
+  .operations :is(.image-list-tools,.entry-list-tools) { width:100%; margin-left:0; }
+  .operations .image-path-row { grid-template-columns:60px minmax(0,1fr); gap:10px; }
+  .operations .image-row-preview,.operations .image-row-preview .ant-image img { width:60px; height:60px; }
+  .operations .entry-list-row { grid-template-columns:26px minmax(0,1fr); gap:10px; }
+  .operations .entry-row-number { width:26px; height:26px; }
+  #root .operations :is(.entry-row-actions,.image-row-actions) .ant-btn { width:44px; height:44px; min-height:44px; }
+  .operations :is(.entry-row-actions,.image-row-actions) { grid-column:1 / -1; justify-self:end; flex-wrap:wrap; }
+  :is(.operations,.admin-modal) .admin-note,:is(.operations,.admin-modal) .field-note { overflow-wrap:anywhere; font-size:13px; }
+  .operations .integration-details { grid-template-columns:84px minmax(0,1fr); gap:12px; font-size:13px; }
+  .operations .integration-details :is(dd,code),.operations .code-block { overflow-wrap:anywhere; white-space:pre-wrap; }
+  .operations .notification-audiences { grid-template-columns:minmax(0,1fr); gap:12px; }
+  .operations .notification-audiences > button { padding:16px; text-align:left; }
+  .operations .notification-channel-tabs { gap:6px; }
+  .operations .notification-channel-tabs button { min-height:44px; }
+
+  .admin-modal.ant-modal { max-width:calc(100vw - 16px); margin:8px auto; }
+  .admin-modal .ant-modal-container { max-height:calc(100dvh - 16px); padding:20px 16px; border-radius:12px; }
+  .admin-modal .ant-modal-title { font-size:17px; }
+  .admin-modal .ant-modal-close { width:44px; height:44px; top:6px; right:6px; }
+  .admin-modal .ant-modal-body { padding-right:0; scrollbar-gutter:stable; }
+  .appointment-detail .detail-grid { display:flex; flex-direction:column; gap:20px; }
+  .appointment-mobile-summary { display:block; margin-bottom:16px; }
+  .appointment-mobile-summary h3 { font-size:17px; line-height:1.6; margin:0 0 6px; overflow-wrap:anywhere; }
+  .appointment-mobile-summary p { margin:0; font-size:14px; color:#73816c; }
+  .appointment-detail .appointment-facts > :is(h3,.appointment-current-time) { display:none; }
+  .appointment-detail .detail-actions { order:-1; padding:16px; border:1px solid #dfe7d8; border-radius:8px; background:#f6f8f2; }
+  .appointment-detail .detail-actions h4 { margin:0 0 12px; font-size:16px; }
+  .appointment-detail .detail-actions .button-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
+  .appointment-detail .detail-status { margin-bottom:16px; gap:8px; font-size:12px; }
+  .appointment-detail .appointment-facts h3 { font-size:17px; }
+  .appointment-detail .detail-actions > .ant-btn { width:100%; }
+
+  /* Phones show one conversation pane at a time and keep the composer visible. */
+  .operations .ops-main[data-page=chats] { display:flex; flex-direction:column; overflow:hidden; }
+  .operations .ops-main[data-page=chats] > .ops-page-heading { flex-shrink:0; margin-bottom:12px; }
+  #root .operations .ops-main[data-page=chats]:has(.chat-show-thread) > .ops-page-heading { display:none; }
+  .operations .ops-body:has(.chat-show-thread) > .ops-footer { display:none; }
+  .operations .ops-main[data-page=chats] .ops-page-heading :is(.eyebrow,p) { display:none; }
+  .operations .chat-inbox { display:flex; flex-direction:column; flex:1; min-height:0; padding:12px; margin-bottom:0; overflow:hidden; }
+  .operations .chat-inbox > :is(.card-heading,.chat-filters,.admin-error,.chat-list-error) { flex-shrink:0; }
+  .operations .chat-inbox .card-heading { margin-bottom:8px; }
+  .operations .chat-inbox .card-heading p { display:none; }
+  .operations .chat-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0 0 12px; }
+  .operations .chat-filters form { grid-column:1 / -1; width:100%; min-width:0; }
+  .operations .chat-filters form > .ant-input { flex:1; min-width:0; }
+  .operations .chat-filters > span:last-child { grid-column:1 / -1; margin:0; font-size:12px; }
+  .operations .chat-workspace { display:flex; flex-direction:column; flex:1; min-height:0; height:auto; }
+  .operations .chat-list { flex:1; min-height:0; max-height:none; border:0; overflow:hidden; }
+  .operations .chat-list-scroll { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+  .operations .chat-list-item { flex-shrink:0; padding:16px; }
+  .operations .chat-list-item small { font-size:12px; }
+  .operations .chat-pagination { flex-shrink:0; padding:8px; gap:8px; }
+  .operations .chat-show-list .chat-thread { display:none; }
+  .operations .chat-show-thread > :is(.card-heading,.chat-filters,.chat-list-error),.operations .chat-show-thread .chat-list { display:none; }
+  .operations .chat-show-thread .chat-thread { display:flex; flex:1; min-height:0; height:auto; }
+  .operations .chat-mobile-back { display:flex; flex-shrink:0; align-items:center; padding:4px; border-bottom:1px solid #e0e6e0; background:#f6f8f2; }
+  .operations .chat-thread > :is(header,.chat-session-note,.chat-window-note,.chat-end-confirm,.chat-reply) { flex-shrink:0; }
+  .operations .chat-thread > header { padding:12px; gap:8px; }
+  .operations .chat-thread > header > .button-row { width:100%; }
+  .operations .chat-thread > header > div:first-child { min-width:0; font-size:14px; overflow-wrap:anywhere; }
+  .operations .chat-session-note,.operations .chat-window-note { font-size:12px; padding:8px 12px; line-height:1.6; margin:0; }
+  .operations .chat-messages { min-height:0; padding:12px; overscroll-behavior:contain; }
+  .operations .chat-bubble { max-width:94%; padding:10px 12px; }
+  .operations .chat-reply { flex-wrap:nowrap; padding:10px; gap:8px; align-items:center; }
+  #root .operations .chat-reply .ant-input { min-height:44px; max-height:96px; resize:none; transition-property:border-color,box-shadow,background-color; }
+  .operations .chat-reply-hint { display:none; }
+  .operations .chat-inbox > .admin-error { margin:8px 0 0; padding:8px; max-height:80px; overflow:auto; }
+  .operations .inbox-popover { right:8px; top:64px; max-width:calc(100vw - 16px); max-height:calc(100dvh - 80px); }
+  .operations .inbox-popover > footer { flex-wrap:wrap; }
+  .admin-login { grid-template-columns:minmax(0,1fr); min-height:100dvh; }
+  .admin-login .login-art { min-height:190px; padding:24px !important; }
+  .admin-login .login-art h1 { margin:12px 0 0; font-size:27px; }
+  .admin-login > form { width:auto; max-width:100%; padding:32px 24px; }
+}
+
+@media (max-width:767px) and (max-height:640px) {
+  .operations .chat-mobile-back { padding:0; }
+  .operations .chat-thread > header { padding:8px; gap:4px; }
+  .operations .chat-thread > header small { display:none; }
+  .operations .chat-session-note,.operations .chat-window-note { padding:4px 8px; }
+  /* Ant Design autoSize writes inline heights; bound it while space is limited. */
+  #root .operations .chat-reply .ant-input { min-height:44px !important; max-height:44px !important; overflow-y:auto !important; }
+}

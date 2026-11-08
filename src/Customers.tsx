@@ -1,3 +1,4 @@
+import ResponsiveTable from './components/ResponsiveTable'
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Modal, Pagination, Switch, Tag } from 'antd'
 import { Download, RefreshCw, Search, UserRound } from 'lucide-react'
@@ -41,14 +42,14 @@ export default function Customers({ ctx, onExport }: { ctx: Ctx; onExport: () =>
         <SelectInput aria-label='客户来源' value={filters.source} onChange={event=>updateFilter('source',event.target.value)}><option value=''>全部客户来源</option>{Object.entries(labels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</SelectInput>
         <ActionButton className='a-secondary'><Search size={14}/>搜索</ActionButton><span className='customer-count'>共 {data.total} 条档案</span>
       </form>
-      {data.items.length?<div className='table-scroll'><table className='ops-table'><thead><tr><th>姓名 / 联系电话</th><th>接待关联门店</th><th>会员状态</th><th>客户来源</th><th>登录与资料状态</th><th>操作</th></tr></thead><tbody>{data.items.map(customer=><tr key={customer.id+(customer.storeId||'')}>
+      {data.items.length?<div className='table-scroll'><ResponsiveTable className='ops-table'><thead><tr><th>姓名 / 联系电话</th><th>接待关联门店</th><th>会员状态</th><th>客户来源</th><th>登录与资料状态</th><th>操作</th></tr></thead><tbody>{data.items.map(customer=><tr key={customer.id+(customer.storeId||'')}>
         <td><strong>{customer.name||'待完善称呼'}</strong>{customer.registeredName&&customer.registeredName!==customer.name&&<small>小程序称呼：{customer.registeredName}</small>}<small>{revealed[customer.id]||customer.phone||'尚未授权手机号'}</small>{!customer.registrationOnly&&ctx.can('appointments:phone')&&!revealed[customer.id]&&<ActionButton type='button' className='a-link' onClick={()=>{void reveal(customer)}}>查看完整电话</ActionButton>}</td>
         <td>{ctx.stores.find(store=>store.id===customer.storeId)?.name||'暂未关联门店'}{customer.privateNote&&<small className='customer-note'>{customer.privateNote}</small>}</td>
         <td><Tag color={customer.memberVerified?'gold':'default'}>{customer.memberVerified?'会员':'非会员'}</Tag>{customer.memberVerified&&<><small>{customer.memberGrade}</small><small>会员归属：{customer.memberStoreName||'待总部确认'}</small></>}</td>
         <td>{(customer.sources||[customer.source]).filter(Boolean).map((source:string)=><Tag key={source} color={source==='DIANPING'?'orange':source==='MINIPROGRAM'?'green':'default'}>{labels[source]||source}</Tag>)}</td>
         <td>{customer.firstLoginAt?<><Tag color={customer.phoneVerified?'success':'default'}>{customer.phoneVerified?'微信手机号已授权':'待完善手机号'}</Tag><small>首次 {displayTime(customer.firstLoginAt)}</small><small>最近 {displayTime(customer.lastLoginAt)}</small></>:<small>尚未关联微信登录</small>}</td>
         <td>{!customer.registrationOnly&&ctx.can('customers:write')&&(customer.storeId||canMaster)?<ActionButton type='button' className='a-link' onClick={()=>{setError('');setEdit({...customer})}}>维护档案</ActionButton>:<span className='customer-muted'>{customer.registrationOnly?'等待客户完善资料':'只读'}</span>}</td>
-      </tr>)}</tbody></table></div>:<div className='data-empty'><UserRound size={30} strokeWidth={1.2}/><p>当前条件下暂无客户档案</p></div>}
+      </tr>)}</tbody></ResponsiveTable></div>:<div className='data-empty'><UserRound size={30} strokeWidth={1.2}/><p>当前条件下暂无客户档案</p></div>}
       <Pagination current={page} total={data.total} pageSize={30} showSizeChanger={false} onChange={setPage}/>
     </section>
     {ctx.can('customers:shared')&&<section className='ops-card shared-lookup'><h3>品牌基础档案 · 精确检索</h3><p>须由总部开启，仅返回基础白名单字段。</p><div className='button-row'><TextInput aria-label='基础档案精确手机号' value={phone} onChange={event=>setPhone(event.target.value)} placeholder='完整 11 位手机号' maxLength={11}/><ActionButton className='a-secondary' onClick={()=>{void api('/api/admin/customers/shared-lookup',{method:'POST',body:JSON.stringify({phone})}).then(setShared).catch(cause=>setError(cause.message))}}>精确查询（留痕）</ActionButton></div>{shared&&<pre>{JSON.stringify(shared,null,2)}</pre>}</section>}

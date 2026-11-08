@@ -1,3 +1,4 @@
+import ResponsiveTable from './components/ResponsiveTable'
 import {ActionButton,TextInput,SelectInput,TextArea,DisabledFieldset} from './components/AdminControls'
 import {useState} from 'react'
 import {Download} from 'lucide-react'
@@ -46,7 +47,7 @@ export default function DataImports({ctx}:{ctx:Ctx}){
       <p>读取 {preview.total} 条 · 已导入 {preview.imported||0} 条{dianping&&` · 新增 ${preview.created} · 更新 ${preview.updated} · 跳过 ${preview.skipped}`}</p>
       {preview.batchId&&<p className="field-note">导入批次：{preview.batchId}</p>}
       {preview.errors?.map((message:string,i:number)=><p className="admin-error" key={i}>{message}</p>)}
-      {preview.rows?.length>0&&<div className="table-scroll"><table className="ops-table"><thead><tr>{Object.keys(preview.rows[0]).map(key=><th key={key}>{key}</th>)}</tr></thead><tbody>{preview.rows.map((row:Row,i:number)=><tr key={i}>{Object.values(row).map((value,n)=><td key={n}>{String(value)}</td>)}</tr>)}</tbody></table></div>}
+      {preview.rows?.length>0&&<div className="table-scroll"><ResponsiveTable className="ops-table"><thead><tr>{Object.keys(preview.rows[0]).map(key=><th key={key}>{key}</th>)}</tr></thead><tbody>{preview.rows.map((row:Row,i:number)=><tr key={i}>{Object.values(row).map((value,n)=><td key={n}>{String(value)}</td>)}</tr>)}</tbody></ResponsiveTable></div>}
       {preview.valid&&!preview.committed&&<ActionButton className="a-primary" disabled={busy} onClick={()=>window.confirm(`确认导入这份${kinds[kind]}文件？系统会重新校验整份文件后写入。`)&&void upload(true)}>确认执行导入</ActionButton>}
     </div>}
   </section>
