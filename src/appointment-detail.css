@@ -1,0 +1,21 @@
+.appointment-detail .detail-status { flex-wrap:wrap; }
+.appointment-detail .detail-status>span { overflow-wrap:anywhere; }
+.appointment-detail .detail-status>button { margin-left:auto; }
+.appointment-detail .appointment-facts,.appointment-detail .detail-actions { min-width:0; }
+.appointment-detail .appointment-facts dl { display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;margin:20px 0; }
+.appointment-detail .appointment-facts dt { color:#778171; }
+.appointment-detail .appointment-facts dd { margin:0;overflow-wrap:anywhere; }
+.appointment-detail .appointment-current-time { color:#52634e;line-height:1.9; }
+.reschedule-review { padding:18px;border:1px solid #e0e7dc;border-radius:10px;background:#f6f8f3; }
+.reschedule-review.is-pending { background:#faf7ee;border-color:#e8d9b6; }
+.reschedule-review header { display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap; }
+.reschedule-review header h4 { margin:0;font-size:15px; }
+.reschedule-review p { margin:12px 0 0;line-height:1.8;font-size:12px;color:#68725e;overflow-wrap:anywhere; }
+.reschedule-comparison { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px; }
+.reschedule-comparison>div { min-width:0; }
+.reschedule-comparison span,.reschedule-comparison strong,.reschedule-comparison small { display:block; }
+.reschedule-comparison span { font-size:12px;color:#778171;margin-bottom:4px; }
+.reschedule-comparison strong { font-size:14px;overflow-wrap:anywhere; }
+.reschedule-review-actions { display:grid;gap:10px;margin:14px 0 20px; }
+.appointment-error { padding:12px 16px;margin-bottom:16px;border-radius:6px;background:#fff2ef;color:#a94939; }
+@media(max-width:600px){.reschedule-comparison{grid-template-columns:1fr;gap:12px}.appointment-detail .appointment-facts dl{grid-template-columns:90px minmax(0,1fr);gap:12px 8px}.appointment-detail .detail-grid{font-size:14px}.reschedule-review{padding:14px}.appointment-detail .detail-actions .button-row{flex-wrap:wrap}}

@@ -112,8 +112,8 @@ export default function Notifications({ctx}:{ctx:Ctx}){
         {toggle('预约客户微信订阅提醒','wechatCustomerEnabled')}
         <div className="subscription-template-list">{customerTemplates.map(t=><div className="subscription-template" key={t.kind}><div><strong>{t.title}</strong><span className={`readiness-tag ${t.ready?'ready':''}`}>{t.ready?'发送配置已就绪':'待配置'}</span></div><p>{t.kind==='result'?'门店确认、驳回、取消或改期后发送。':'门店确认后，按门店“到店前提醒分钟”发送。'}</p><code>{t.templateId||'尚未设置模板 ID'}</code>{t.issue&&<p className="configuration-issue">{t.issue}</p>}</div>)}</div>
         {!readiness&&<p className="field-note">正在读取服务器模板配置…</p>}
-        <p className="field-note">客户在提交预约、改约或“我的预约”中主动订阅。两个一次性模板分别授权，每次授权仅用于对应模板；拒绝订阅不影响预约。</p>
-        <div className="admin-note">客户可在“我的预约”查看本系统记录的订阅次数和最近发送状态。接口受理后仍以客户微信实际收到为准。</div>
+        <p className="field-note">客户点击提交预约或改约时，将触发微信原生订阅授权；“我的预约”不再提供独立订阅按钮。两个一次性模板分别授权，拒绝订阅不影响预约。</p>
+        <div className="admin-note">发送结果在管理后台的客户消息记录中查看。接口受理后仍以客户微信实际收到为准。</div>
       </section>
       <section className="ops-card notification-channel" aria-label="客户短信提醒">
         <div className="card-heading"><div><h3>客户短信提醒</h3><p>发送至本次预约填写的手机号</p></div><Smartphone size={22}/></div>
