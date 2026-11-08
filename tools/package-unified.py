@@ -158,7 +158,7 @@ def main():
     for name in ('initialize-official-stores.py', 'initialize-client-services.py', 'initialize-local-content.py'):
         payload['optional-data/tools/' + name] = (backend / 'tools' / name).read_bytes()
     payload['tools/configure-staff-wechat.py'] = (backend / 'tools/configure-staff-wechat.py').read_bytes()
-    for name in ('消息通知验收与店长接入.md', '客服会话接入与结束.md', '客户品项独立初始化.md', '本地示例内容补充.md', '官网门店初始化.md'):
+    for name in ('消息通知验收与店长接入.md', '客服会话接入与结束.md', '客户品项独立初始化.md', '本地示例内容补充.md', '官网门店初始化.md', '客户资料与会员来源.md'):
         payload['docs/' + name] = (backend / 'docs' / name).read_bytes()
     payload['docs/客服接待与官方工具.md'] = (ROOT / 'deploy/unified/客服接待说明.md').read_bytes()
     for name in ('update.py', 'update.sh', 'initialize.py'):
@@ -179,6 +179,10 @@ def main():
     for screenshot in ('login-390.png', 'login-sheet-390.png'):
         payload['docs/login-preview/' + screenshot] = (mini / 'backups/login-verification' / screenshot).read_bytes()
     payload['validation/client-unit-tests.txt'] = (mini / 'backups/login-unit-tests.txt').read_bytes()
+    for repo, name in ((ROOT, 'admin-customer-profiles.json'), (mini, 'client-customer-profiles.json')):
+        profile_report = json.loads((repo / 'backups/customer-profiles/result.json').read_text(encoding='utf-8'))
+        require(profile_report.get('status') == 'passed' and not profile_report.get('liveApisUsed', True), 'Missing customer profile browser verification')
+        payload['validation/' + name] = (json.dumps(profile_report, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
     payload['docs/小程序客户登录说明.md'] = (mini / 'README.md').read_bytes()
     for source, target in (('backups/customer-chat-verification/result.json', 'admin-chat.json'),
                            ('backups/chat-customer-verification/result.json', 'client-chat.json')):

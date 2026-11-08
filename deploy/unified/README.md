@@ -4,6 +4,8 @@
 
 适用服务器：现有 Ubuntu、Docker、1Panel 环境，Java 容器 `yuhetang-java-api`，独立 MySQL 容器 `yuwatang-mysql-isolated`，管理后台域名 `mp-admin.hetuonian.cn`，网站目录 `/opt/1panel/www/sites/mp-admin/index`。这是已有系统的更新包，不是新服务器安装包。
 
+本次包含客户资料与会员来源：登录登记、微信手机号授权、姓名/称呼保存、会员状态维护、多来源标签和后台筛选。Java 自动执行 V9 增量迁移，保留已有资料。已经初始化的门店、品项、示例调理师和图片不需要再次导入；新资料卡需要上传新的小程序版本。配置与真机验收步骤见 `docs/客户资料与会员来源.md`。
+
 ## 1. 上传后一次更新服务器
 
 通过腾讯云网页终端的上传按钮，以 **ubuntu 用户上传到 `/home/ubuntu`**。需要上传两个文件：

@@ -1,4 +1,5 @@
 """Validate supplementation against the release JAR and a disposable H2 database."""
+import argparse
 import contextlib
 import hashlib
 import importlib.util
@@ -20,7 +21,11 @@ SPEC.loader.exec_module(INIT)
 
 
 def main():
-    package = ROOT / 'releases/yuhetang-full-update-20261108-144900'
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--package-root', type=Path, default=ROOT / 'releases/yuhetang-full-update-20261108-144900')
+    parser.add_argument('--jar', type=Path, help='Verify a new release JAR using the reviewed dataset from package-root')
+    args = parser.parse_args()
+    package = args.package_root.resolve()
     data_root = INIT.verified_data_root(package)
     official, menus, content = INIT.modules(data_root)
     store_data = official.load_dataset(data_root / INIT.DATASETS[0])
@@ -29,7 +34,7 @@ def main():
     work = ROOT / 'backups/missing-initial-data' / secrets.token_hex(6)
     work.mkdir(parents=True)
     database_work = Path(tempfile.mkdtemp(prefix='yuhetang-initial-data-'))
-    jar = package / 'server/java/reservation.jar'
+    jar = args.jar.resolve() if args.jar else package / 'server/java/reservation.jar'
     java = shutil.which('java')
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
