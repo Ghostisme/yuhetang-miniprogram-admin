@@ -55,9 +55,22 @@ class FakeUpdater(UPDATE.Updater):
         (self.site / 'assets/old.js').write_bytes(b'old js')
         self.containers = {self.java: dict(image='yuhetang-java-api:old', running=True, id='old-id')}
         self.trace, self.fail_at, self.change_schema = [], None, False
+        self.legacy_conflict = False
+        self.ports_occupied = False
+
+    def check_legacy_service(self):
+        self.trace.append('check-legacy-service')
+        if self.legacy_conflict:
+            raise UPDATE.UpdateError('Previous host Java service is active or enabled')
+
+    def check_free_ports(self):
+        self.trace.append('check-ports')
+        if self.ports_occupied:
+            raise UPDATE.UpdateError('Port 8790 is still occupied')
 
     def preflight(self):
         self.trace.append('preflight')
+        self.check_legacy_service()
         self.current_image = self.inspect(self.java, '{{.Config.Image}}')
         self.previous_id = self.inspect(self.java, '{{.Id}}')
 
@@ -84,7 +97,12 @@ class FakeUpdater(UPDATE.Updater):
         return row['image'] if template == '{{.Config.Image}}' else row['id']
 
     def command(self, *args, **kwargs):
-        if args[:2] == ('docker', 'stop'):
+        if args[:2] == ('docker', 'update'):
+            self.trace.append('restart-no:' + args[-1])
+            self.containers[args[-1]]['restart'] = 'no'
+        elif args[:2] == ('docker', 'logs'):
+            return 'Web server failed to start. Port 8790 was already in use.'
+        elif args[:2] == ('docker', 'stop'):
             self.trace.append('stop:' + args[-1])
             self.containers[args[-1]]['running'] = False
         elif args[:2] == ('docker', 'rename'):
@@ -180,6 +198,73 @@ class ReleaseTests(unittest.TestCase):
         self.assertTrue(updater.containers[updater.java]['running'])
         self.assertFalse(any(x.startswith('stop:') for x in updater.trace))
 
+    def test_legacy_host_service_stops_update_before_any_container_is_stopped(self):
+        updater = FakeUpdater(self.root, self.base)
+        updater.legacy_conflict = True
+        self.run_update(updater, fail=True)
+        self.assertTrue(updater.containers[updater.java]['running'])
+        self.assertNotIn('build-verify', updater.trace)
+        self.assertFalse(any(x.startswith('stop:') for x in updater.trace))
+
+    def test_host_service_reactivated_during_build_is_checked_before_downtime(self):
+        updater = FakeUpdater(self.root, self.base)
+        def build():
+            updater.legacy_conflict = True
+        updater.prepare_image = build
+        self.run_update(updater, fail=True)
+        self.assertTrue(updater.containers[updater.java]['running'])
+        self.assertFalse(any(x.startswith('stop:') for x in updater.trace))
+
+    def test_foreign_port_owner_prevents_launch_and_automatic_restart(self):
+        updater = FakeUpdater(self.root, self.base)
+        updater.ports_occupied = True
+        self.run_update(updater, fail=True)
+        self.assertNotIn('launch', updater.trace)
+        self.assertFalse(updater.migration_started)
+        self.assertNotIn('start:' + updater.java, updater.trace)
+        self.assertEqual(updater.containers[updater.java]['id'], 'old-id')
+
+    def test_host_service_states_are_checked_without_changing_systemd(self):
+        updater = FakeUpdater(self.root, self.base)
+        cases = [('loaded', 'active', 'enabled', 0, True),
+                 ('loaded', 'inactive', 'enabled', 0, True),
+                 ('loaded', 'activating', 'disabled', 0, True),
+                 ('loaded', 'inactive', 'disabled', 0, False),
+                 ('not-found', 'inactive', '', 4, False)]
+        for loaded, active, enabled, code, blocked in cases:
+            with self.subTest(loaded=loaded, active=active, enabled=enabled):
+                value = subprocess.CompletedProcess([], code, 'LoadState=%s\nActiveState=%s\nUnitFileState=%s\n' % (loaded, active, enabled), '')
+                with patch.object(UPDATE.shutil, 'which', return_value='/bin/systemctl'), patch.object(UPDATE.subprocess, 'run', return_value=value) as run:
+                    if blocked:
+                        with self.assertRaisesRegex(UPDATE.UpdateError, 'active or enabled'):
+                            UPDATE.Updater.check_legacy_service(updater)
+                    else:
+                        UPDATE.Updater.check_legacy_service(updater)
+                args = run.call_args.args[0]
+                self.assertEqual(args[:3], ['systemctl', 'show', 'yuwatang-reservation.service'])
+                self.assertNotIn('stop', args)
+
+    def test_host_service_inspection_failure_is_not_treated_as_inactive(self):
+        updater = FakeUpdater(self.root, self.base)
+        with patch.object(UPDATE.shutil, 'which', return_value='/bin/systemctl'), patch.object(UPDATE.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '', 'failed')):
+            with self.assertRaisesRegex(UPDATE.UpdateError, 'Cannot verify'):
+                UPDATE.Updater.check_legacy_service(updater)
+
+    def test_both_application_ports_are_checked(self):
+        updater = FakeUpdater(self.root, self.base)
+        with patch.object(updater, 'command', side_effect=['', 'LISTEN']) as command:
+            with self.assertRaisesRegex(UPDATE.UpdateError, 'Port 8791'):
+                UPDATE.Updater.check_free_ports(updater)
+        self.assertEqual(command.call_args_list, [unittest.mock.call('ss', '-H', '-lnt', 'sport = :8790'),
+                                                unittest.mock.call('ss', '-H', '-lnt', 'sport = :8791')])
+
+    def test_restarting_release_fails_without_waiting_for_health_timeout(self):
+        updater = FakeUpdater(self.root, self.base)
+        with patch.object(updater, 'state', return_value={'Running': True, 'Restarting': True}), patch.object(UPDATE.time, 'sleep') as sleep:
+            with self.assertRaisesRegex(UPDATE.UpdateError, 'restarting'):
+                UPDATE.Updater.wait_ready(updater)
+        sleep.assert_not_called()
+
     def test_backup_failure_restarts_previous_java(self):
         updater = FakeUpdater(self.root, self.base)
         updater.fail_at = 'backup'
@@ -214,6 +299,11 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse(any(row['running'] for row in updater.containers.values()))
         self.assertNotIn('start:' + updater.java, updater.trace)
         self.assertTrue((updater.backup / 'database.sql.gz').is_file())
+        failed = next(row for row in updater.containers.values() if row['id'] == 'new-id')
+        self.assertEqual(failed['restart'], 'no')
+        self.assertIn('Port 8790', (updater.backup / 'java-startup.log').read_text())
+        self.assertLess(updater.trace.index('restart-no:' + updater.java),
+                        [i for i, item in enumerate(updater.trace) if item == 'stop:' + updater.java][1])
 
     def test_failed_frontend_verification_restores_old_entry_and_retains_assets(self):
         updater = FakeUpdater(self.root, self.base)

@@ -123,6 +123,7 @@ def public_directories(directory, root):
 class Updater:
     java = 'yuhetang-java-api'
     mysql = 'yuwatang-mysql-isolated'
+    legacy_service = 'yuwatang-reservation.service'
     environment = Path('/etc/yuwatang-reservation.docker.env')
     app_files = Path('/var/lib/yuwatang-reservation')
     upload_root = Path('/root/yuhetang-upload')
@@ -146,9 +147,9 @@ class Updater:
         self.schema_before = None
         self.complete = False
 
-    def command(self, *args, live=False, input=None):
+    def command(self, *args, live=False, input=None, include_stderr=False):
         result = subprocess.run(args, input=input, text=True, stdout=None if live else subprocess.PIPE,
-                                stderr=None if live else subprocess.PIPE)
+                                stderr=subprocess.STDOUT if include_stderr else (None if live else subprocess.PIPE))
         if result.returncode:
             # Commands never contain passwords; do not print captured database/config output.
             raise UpdateError('Command failed (exit %s): %s' % (result.returncode, ' '.join(args)))
@@ -159,6 +160,43 @@ class Updater:
 
     def state(self, name):
         return json.loads(self.inspect(name, '{{json .State}}'))
+
+    def check_legacy_service(self):
+        """Detect the previous host installation before stopping a working container."""
+        if not shutil.which('systemctl'):
+            return
+        result = subprocess.run(['systemctl', 'show', self.legacy_service, '--no-pager',
+                                 '-p', 'LoadState', '-p', 'ActiveState', '-p', 'UnitFileState'],
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        values = dict(line.split('=', 1) for line in result.stdout.splitlines() if '=' in line)
+        if values.get('LoadState') == 'not-found':
+            return
+        if result.returncode or not values.get('LoadState') or not values.get('ActiveState'):
+            raise UpdateError('Cannot verify the previous host Java service: ' + self.legacy_service)
+        if values['ActiveState'] not in ('inactive', 'failed') or values.get('UnitFileState', '').startswith('enabled'):
+            raise UpdateError('Previous host Java service is active or enabled: ' + self.legacy_service +
+                              '. Confirm this project is using Docker, then run: sudo systemctl disable --now ' + self.legacy_service)
+
+    def check_free_ports(self):
+        for port in (8790, 8791):
+            if self.command('ss', '-H', '-lnt', 'sport = :' + str(port)):
+                raise UpdateError('Port ' + str(port) + ' is still occupied after stopping project Java. ' +
+                                  'Identify its owner with sudo ss -lntp before retrying; no process was killed.')
+
+    def save_startup_log(self):
+        """Keep full logs private; print only a recognized, non-sensitive failure reason."""
+        try:
+            logs = self.command('docker', 'logs', '--tail', '180', self.java, include_stderr=True)
+            path = self.backup / 'java-startup.log'
+            with path.open('x', encoding='utf-8') as stream:
+                os.chmod(path, 0o600)
+                stream.write(logs + '\n')
+            print('Private Java startup log: ' + str(path), file=sys.stderr)
+            conflict = re.search(r'Port (8790|8791) was already in use', logs)
+            if conflict:
+                print('STARTUP CAUSE: port ' + conflict.group(1) + ' was already in use. Check the previous host Java service and port owner.', file=sys.stderr)
+        except (UpdateError, OSError) as error:
+            print('Could not retain startup log; inspect the retained failed container. ' + str(error), file=sys.stderr)
 
     def local_url(self, path):
         return self.command('curl', '--noproxy', '*', '--resolve', 'mp-admin.hetuonian.cn:443:127.0.0.1',
@@ -194,6 +232,7 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
                 raise UpdateError('Required server command is missing: ' + tool)
         if self.command('docker', 'info', '--format', '{{.OSType}}') != 'linux':
             raise UpdateError('Docker must be running on Linux')
+        self.check_legacy_service()
         for name, role in ((self.java, 'java-api'), (self.mysql, 'mysql-isolated')):
             if self.inspect(name, '{{index .Config.Labels "com.yuwatang.component"}}') != role or not self.state(name)['Running']:
                 raise UpdateError('Expected an existing running ' + role + ' container: ' + name)
@@ -286,6 +325,8 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
             raise UpdateError('The database dump is unexpectedly empty')
 
     def backup_all(self):
+        # Image builds can take time: check again before taking a healthy API offline.
+        self.check_legacy_service()
         no_links(self.backup_root)
         self.backup_root.mkdir(parents=True, exist_ok=True, mode=0o700)
         stamp = dt.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
@@ -316,6 +357,7 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
         print('BACKUP=' + str(self.backup), flush=True)
 
     def launch(self):
+        self.check_free_ports()
         suffix = dt.datetime.now().strftime('%H%M%S-%f')
         self.previous = self.java + '-before-full-' + self.release + '-' + suffix
         self.command('docker', 'rename', self.java, self.previous)
@@ -327,8 +369,8 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
         deadline = time.monotonic() + 150
         while time.monotonic() < deadline:
             state = self.state(self.java)
-            if not state.get('Running'):
-                raise UpdateError('The new Java process exited before becoming healthy')
+            if not state.get('Running') or state.get('Restarting'):
+                raise UpdateError('The new Java process exited or is restarting before becoming healthy')
             if state.get('Health', {}).get('Status') == 'healthy':
                 self.health()
                 value = self.command('docker', 'exec', self.java, 'sha256sum', '/app/reservation.jar').split()[0]
@@ -383,6 +425,8 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
                 # Stop the attempted Java before inspecting schema: migrations must
                 # not race with the compatibility decision for the previous JAR.
                 if self.inspect(self.java, '{{.Config.Image}}') == self.image:
+                    self.save_startup_log()
+                    self.command('docker', 'update', '--restart=no', self.java)
                     self.command('docker', 'stop', '--timeout', '50', self.java, live=True)
                     self.command('docker', 'rename', self.java, self.java + '-failed-full-' + self.release + '-' + dt.datetime.now().strftime('%H%M%S-%f'))
                 else:
@@ -406,6 +450,8 @@ SELECT version,success FROM flyway_schema_history ORDER BY installed_rank;
             self.command('docker', 'rename', self.previous, self.java)
         if self.index_changed:
             atomic_copy(self.backup / 'admin-index.html', self.site / 'index.html')
+        self.check_legacy_service()
+        self.check_free_ports()
         self.command('docker', 'start', self.java, live=True)
         print('Previous Java restarted; database schema was unchanged. Check its health before retrying.', file=sys.stderr)
 
