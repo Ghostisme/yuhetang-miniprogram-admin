@@ -161,7 +161,7 @@ def main():
     for name in ('消息通知验收与店长接入.md', '客服会话接入与结束.md', '客户品项独立初始化.md', '本地示例内容补充.md', '官网门店初始化.md'):
         payload['docs/' + name] = (backend / 'docs' / name).read_bytes()
     payload['docs/客服接待与官方工具.md'] = (ROOT / 'deploy/unified/客服接待说明.md').read_bytes()
-    for name in ('update.py', 'update.sh'):
+    for name in ('update.py', 'update.sh', 'initialize.py'):
         payload[name] = (ROOT / 'deploy/unified' / name).read_bytes().replace(b'\r\n', b'\n')
     readme = (ROOT / 'deploy/unified/README.md').read_text(encoding='utf-8')
     payload['README.md'] = readme.replace('{{RELEASE_ID}}', args.release_id).replace('{{JAVA_SHA256}}', jar_sha).encode('utf-8')
@@ -188,6 +188,15 @@ def main():
     result = subprocess.run(['python', '-B', str(ROOT / 'tools/test_unified_update.py')], text=True, capture_output=True)
     require(result.returncode == 0, result.stdout + result.stderr)
     payload['validation/unified-updater-tests.txt'] = (result.stdout + result.stderr).encode('utf-8')
+    result = subprocess.run(['python', '-B', str(ROOT / 'tools/test_missing_initial_data.py')], text=True, capture_output=True)
+    require(result.returncode == 0, result.stdout + result.stderr)
+    payload['validation/initial-data-guard-tests.txt'] = (result.stdout + result.stderr).encode('utf-8')
+    supplement = json.loads((ROOT / 'backups/missing-initial-data/result.json').read_text(encoding='utf-8'))
+    require(supplement.get('status') == 'verified' and supplement.get('javaJarSha256') == jar_sha
+            and supplement.get('initializerSha256') == hashlib.sha256(payload['initialize.py']).hexdigest()
+            and supplement.get('repeatedImportBusinessChanges') == 0 and not supplement.get('liveWechatApisUsed', True),
+            'Missing current additive-initialization verification')
+    payload['validation/initial-data-supplement.json'] = (json.dumps(supplement, indent=2) + '\n').encode('utf-8')
     sources = {name: dict(commit=commit, repository='https://github.com/Ghostisme/' +
                {'java': 'yuhetang-miniprogram-backend', 'admin': 'yuhetang-miniprogram-admin', 'miniprogram': 'yuhetang-miniprogram'}[name])
                for name, commit in commits.items()}

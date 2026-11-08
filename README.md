@@ -34,10 +34,17 @@ npm run package:release -- --release-id 20261107-180000
 
 云端入口为 `https://mp-admin.hetuonian.cn/admin`。将文件发布到现有 1Panel `mp-admin` 静态网站，保留原 SSL、域名和 `/api/` 代理。前端接口使用同源相对路径，无须因域名变更重新打包。只更新后台页面无需重启 Java 或发布小程序；首次安装和接口升级参见后端的 [1Panel 部署文档](https://github.com/Ghostisme/yuhetang-miniprogram-backend/blob/main/deploy/1panel/README.md)。
 
+## 整体更新与资料补缺
+
+`python -B tools/package-unified.py` 将已经验证的 Java、后台前端、Taro 小程序/H5 和初始化资料整理成一个总包。总包的 `update.sh` 更新服务器程序，`initialize.py --apply` 用总部管理员账号补齐缺少的门店、各店独立品项、品牌素材和带“示例”标识的调理师。两者入口独立，资料补缺无需重启服务；已有门店相册、品项价格/上下架和人员资料保留。完整操作、备份和验收见 [总包部署说明](deploy/unified/README.md)。
+
 ## 验证
 
 ```powershell
 npm run typecheck
+# 初始化保留规则与更新失败恢复；均不连接线上
+python -B tools/test_missing_initial_data.py
+python -B tools/test_unified_update.py
 # 无需启动服务器，直接对构建产物注入接口响应
 npm run verify:customer-chat
 # 先在相邻小程序仓库构建 H5，再验证客户结束和发起新咨询
