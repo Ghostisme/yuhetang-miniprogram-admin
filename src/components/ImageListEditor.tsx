@@ -30,7 +30,15 @@ export default function ImageListEditor({label,value,onChange,canBrowse=false,di
     </div></div>
     <Image.PreviewGroup><div className="image-path-rows">{value.map((url,index)=><div className="image-path-row" data-image-row={index} key={index}>
       <div className="image-row-preview">{url.trim()?<Image src={url.trim()} alt={`${label}第 ${index+1} 张`} width="100%"/>:<ImageIcon size={24}/>}</div>
-      <label className="image-row-path"><span>第 {index+1} 张图片</span><TextInput aria-label={`${label}第 ${index+1} 张图片路径`} disabled={disabled} value={url} placeholder="填写图片路径，或从素材库添加" onChange={event=>onChange(value.map((old,i)=>i===index?event.target.value:old))} onKeyDown={event=>{if(event.key==='Enter'&&!event.nativeEvent.isComposing){event.preventDefault();addRow(index+1)}}}/></label>
+      <label className="image-row-path"><span>第 {index+1} 张图片</span><TextInput aria-label={`${label}第 ${index+1} 张图片路径`} disabled={disabled} value={url} placeholder="填写图片路径，或从素材库添加" onChange={event=>onChange(value.map((old,i)=>i===index?event.target.value:old))} onKeyDown={event=>{if(event.key==='Enter'&&!event.nativeEvent.isComposing&&event.keyCode!==229){event.preventDefault();addRow(index+1)}}} onPaste={event=>{
+        const lines=event.clipboardData.getData('text/plain').split(/\r\n|\r|\n/)
+        if(lines.length<2)return
+        event.preventDefault()
+        const input=event.currentTarget
+        lines[0]=url.slice(0,input.selectionStart??0)+lines[0]
+        lines[lines.length-1]+=url.slice(input.selectionEnd??url.length)
+        const next=[...value];next.splice(index,1,...lines);focusRow.current=index+lines.length-1;onChange(next)
+      }}/></label>
       <div className="image-row-actions">
         <ActionButton type="button" className="a-secondary" aria-label={`上移第 ${index+1} 张图片`} title="上移" disabled={disabled||index===0} onClick={()=>move(index,-1)}><ArrowUp size={15}/></ActionButton>
         <ActionButton type="button" className="a-secondary" aria-label={`下移第 ${index+1} 张图片`} title="下移" disabled={disabled||index===value.length-1} onClick={()=>move(index,1)}><ArrowDown size={15}/></ActionButton>
@@ -39,7 +47,7 @@ export default function ImageListEditor({label,value,onChange,canBrowse=false,di
       </div>
     </div>)}</div></Image.PreviewGroup>
     {!value.length&&<p className="image-list-empty">暂无相册图片，点击「＋ 添加图片」逐张添加。</p>}
-    {batch&&<TextArea id={inputId} aria-label={label} rows={3} disabled={disabled} value={value.join('\n')} placeholder="每行填写一张图片路径，可直接回车换行或粘贴多行" onChange={event=>onChange(event.target.value.split(/\r?\n/))}/>}
+    {batch&&<TextArea id={inputId} aria-label={label} rows={3} disabled={disabled} value={value.join('\n')} placeholder="每行填写一张图片路径，可直接回车换行或粘贴多行" onChange={event=>onChange(event.target.value.split(/\r\n|\r|\n/))}/>}
     <p className="image-list-hint">点击 ＋ 添加、− 移除，或按回车添加下一行；修改后请保存。保存时自动去除空行和重复图片。</p>
     <Modal open={open} centered title="从素材库添加图片" width={880} className="admin-modal image-library-modal" onCancel={()=>setOpen(false)} footer={<div className="image-library-footer"><span>已选 {selected.length} 张，添加后点击页面保存按钮生效。</span><ActionButton type="button" className="a-secondary" onClick={()=>setOpen(false)}>取消</ActionButton><ActionButton type="button" className="a-primary" disabled={disabled||!selected.length} onClick={()=>{onChange(imagePaths([...value,...selected]));setOpen(false)}}>添加所选图片（{selected.length}）</ActionButton></div>}>
       {error&&<Alert type="error" showIcon title={error}/>}

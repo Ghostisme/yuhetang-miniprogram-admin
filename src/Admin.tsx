@@ -17,6 +17,8 @@ import {moduleAllowed,togglePermission,type Permission} from './rbac'
 import {Alert,Modal as AntModal,Pagination,Switch,Tag} from 'antd'
 import {ActionButton,TextInput,SelectInput,TextArea,DisabledFieldset} from './components/AdminControls'
 import ImageListEditor,{imagePaths} from './components/ImageListEditor'
+import StepListEditor,{serviceSteps} from './components/StepListEditor'
+import ClosedDatesEditor,{closedDates,invalidClosedDate} from './components/ClosedDatesEditor'
 
 export type Ctx={me:AdminIdentity;stores:StoreItem[];store:string;setStore:(s:string)=>void;refreshStores:()=>Promise<void>;can:(p:string)=>boolean;notify:(s:string)=>void;openNotification?:(row:Row)=>void}
 const sourceLabels:Row={MINIPROGRAM:'小程序',PHONE:'电话',WECHAT:'微信',DIANPING:'大众点评',WALKIN:'到店'}
@@ -178,7 +180,7 @@ function StoreSettingsDetail({ctx,sid}:{ctx:Ctx;sid:string}){
   const [store,setStore]=useState<Row|null>(null),[rules,setRules]=useState<Rules|null>(null),[error,setError]=useState(''),[override,setOverride]=useState({date:dateInput(1),time:'*',capacity:4,closed:false}),[overrides,setOverrides]=useState<Row[]>([])
   const [section,setSection]=useState('profile')
   useEffect(()=>{let current=true;api<StoreItem[]>('/api/admin/stores').then(rows=>current&&setStore(rows.find(s=>s.id===sid)||null)).catch(e=>current&&setError(e.message));if(ctx.can('rules:write')){api<Rules>(`/api/admin/stores/${sid}/rules`).then(r=>current&&setRules(r)).catch(e=>current&&setError(e.message));api<Row[]>(`/api/admin/stores/${sid}/slots`).then(r=>current&&setOverrides(r)).catch(e=>current&&setError(e.message))}return()=>{current=false}},[sid])
-  async function save(type:string){try{if(type==='profile'&&ctx.can('stores:write')){setStore(await post(`/api/admin/stores/${sid}`,{...store,gallery:imagePaths(store?.gallery||[])}));await ctx.refreshStores()}if(type==='rules')setRules(await post(`/api/admin/stores/${sid}/rules`,rules));if(type==='slot'){await post(`/api/admin/stores/${sid}/slots`,override);setOverrides(await api(`/api/admin/stores/${sid}/slots`))}ctx.notify('门店配置已保存。');setError('')}catch(e){setError(friendlyError(e))}}
+  async function save(type:string){try{if(type==='profile'&&ctx.can('stores:write')){setStore(await post(`/api/admin/stores/${sid}`,{...store,gallery:imagePaths(store?.gallery||[])}));await ctx.refreshStores()}if(type==='rules'&&rules&&ctx.can('rules:write')){const invalid=invalidClosedDate(rules.closedDates);if(invalid)throw new Error(`休店日期 ${invalid} 无效，请使用 YYYY-MM-DD 格式的真实日期。`);setRules(await post(`/api/admin/stores/${sid}/rules`,{...rules,closedDates:closedDates(rules.closedDates)}))}if(type==='slot'){await post(`/api/admin/stores/${sid}/slots`,override);setOverrides(await api(`/api/admin/stores/${sid}/slots`))}ctx.notify('门店配置已保存。');setError('')}catch(e){setError(friendlyError(e))}}
   if(!store)return <Empty text="正在读取门店配置…"/>
   return <>
     <ErrorLine error={error}/>
@@ -210,7 +212,7 @@ function StoreSettingsDetail({ctx,sid}:{ctx:Ctx;sid:string}){
           <Field label="结束营业"><TextInput type="time" value={rules.closes} onChange={e=>setRules({...rules,closes:e.target.value})}/></Field>
           <Field label="开始时段间隔"><SelectInput value={rules.interval} onChange={e=>setRules({...rules,interval:Number(e.target.value)})}>{[15,30,60].map(v=><option key={v} value={v}>{v}分钟</option>)}</SelectInput></Field>
           {[['capacity','每时段人数名额'],['advanceDays','提前可约天数'],['minLeadMinutes','最短提前分钟'],['cancelHours','自助取消 / 改约提前小时'],['maxHeadcount','每笔最多同行人数'],['phoneOpenLimit','同电话最多未结束笔数'],['remindMinutes','到店前提醒分钟']].map(([key,label])=><Field key={key} label={label}><TextInput type="number" min="0" value={Number(rules[key as keyof Rules])} onChange={e=>setRules({...rules,[key]:Number(e.target.value)})}/></Field>)}
-          <Field label="休店日期（英文逗号分隔，YYYY-MM-DD）" wide><TextInput value={rules.closedDates.join(',')} onChange={e=>setRules({...rules,closedDates:e.target.value.split(',').filter(Boolean)})}/></Field>
+          <ClosedDatesEditor value={rules.closedDates} onChange={dates=>setRules({...rules,closedDates:dates})}/>
         </div>
         <div className="admin-note">已有申请占用的名额不能直接清零。待确认超时与迟到只提醒工作人员处理，不会自动取消。</div>
       </>}
@@ -263,13 +265,14 @@ function ContentEditor({ctx}:{ctx:Ctx}){
     try{
       if(scoped){
         const previous=new Map(savedServices.current.map(s=>[s.id,s]))
-        const items=site.services.filter(s=>JSON.stringify(s)!==JSON.stringify(previous.get(s.id))).map(s=>({...s,id:previous.has(s.id)?s.id:''}))
-        if(!items.length){setError('');ctx.notify('本店项目没有待保存的修改。');return}
+        const normalized=site.services.map(s=>({...s,steps:serviceSteps(s.steps||[])}))
+        const items=normalized.filter(s=>JSON.stringify(s)!==JSON.stringify(previous.get(s.id))).map(s=>({...s,id:previous.has(s.id)?s.id:''}))
+        if(!items.length){setSite({...site,services:normalized});setError('');ctx.notify('本店项目没有待保存的修改。');return}
         const services=await post(`/api/admin/stores/${storeId}/services`,{items}) as ServiceItem[]
         if(active.current){savedServices.current=clone(services);setSite(s=>s?{...s,services}:s)}
         ctx.notify(`${storeName}的养护项目已保存，本店展示和预约已同步。`)
       }else{
-        const content=await post(`/api/admin/content/${publish?'publish':'draft'}`,{...site,galleryGroups:site.galleryGroups.map(group=>({...group,images:imagePaths(group.images)}))})
+        const content=await post(`/api/admin/content/${publish?'publish':'draft'}`,{...site,services:site.services.map(s=>({...s,steps:serviceSteps(s.steps||[])})),galleryGroups:site.galleryGroups.map(group=>({...group,images:imagePaths(group.images)}))})
         if(active.current)setSite(content)
         ctx.notify(publish?'内容已发布，客户页面将读取新版本。':'草稿已保存，客户页面仍使用已发布内容。')
       }
@@ -279,7 +282,8 @@ function ContentEditor({ctx}:{ctx:Ctx}){
   }
   if(needsStore)return <section className="ops-card"><Empty text="请选择上方的具体门店，查看或维护该门店的养护项目。"/></section>
   if(!site)return <><ErrorLine error={error}/><Empty text="正在读取品牌内容…"/></>
-  const previewSite={...site,stores:scoped&&canServices?site.stores.map(s=>s.id===storeId?{...s,services:site.services}:s):site.stores,galleryGroups:site.galleryGroups.map(group=>({...group,images:imagePaths(group.images)}))}
+  const previewServices=site.services.map(s=>({...s,steps:serviceSteps(s.steps||[])}))
+  const previewSite={...site,services:previewServices,stores:scoped&&canServices?site.stores.map(s=>s.id===storeId?{...s,services:previewServices}:s):site.stores,galleryGroups:site.galleryGroups.map(group=>({...group,images:imagePaths(group.images)}))}
   const catalogTab=tab==='services'||tab==='products'?tab:null
   const selectableItems:Row[]=catalogTab?(site[catalogTab] as unknown as Row[]):tab==='gallery'?site.galleryGroups:[]
   const selectionKey=catalogTab||'gallery'
@@ -316,7 +320,7 @@ function ContentEditor({ctx}:{ctx:Ctx}){
             <div className="catalog-editors">{(site[catalogTab] as unknown as Row[]).map((item,i)=>i===selectedIndex&&<div className="catalog-editor" key={item.id}>
               <div className="catalog-editor-header"><img src={item.image} alt={item.name}/><div><strong>{item.name}</strong><small>编号 {item.id}</small></div><Toggle label="上架" disabled={scoped&&item.brandEnabled===false} value={item.enabled} onChange={v=>patch({[catalogTab]:(site[catalogTab] as unknown as Row[]).map((x,n)=>n===i?{...x,enabled:v}:x)})}/></div>
               {['name','subtitle','category','duration','english','tag','image','description'].filter(key=>catalogTab==='services'||!['duration','english','tag'].includes(key)).map(key=><Field key={key} wide={key==='image'||key==='description'} label={({name:'名称',subtitle:'简短说明',category:'分类',image:'素材图片路径',description:'详细介绍',duration:'参考时长',english:'英文标题',tag:'标签'} as Row)[key]}>{key==='description'?<AutoTextarea value={item[key]||''} onChange={e=>patch({[catalogTab]:(site[catalogTab] as unknown as Row[]).map((x,n)=>n===i?{...x,[key]:e.target.value}:x)})}/>:<TextInput value={item[key]||''} onChange={e=>patch({[catalogTab]:(site[catalogTab] as unknown as Row[]).map((x,n)=>n===i?{...x,[key]:e.target.value}:x)})}/>}</Field>)}
-              {catalogTab==='services'&&<Field label="养护步骤（一行一步）" wide><AutoTextarea value={(item.steps||[]).join('\n')} onChange={e=>patch({services:site.services.map((s,n)=>n===i?{...s,steps:e.target.value.split('\n').filter(Boolean)}:s)})}/></Field>}
+              {catalogTab==='services'&&<StepListEditor value={item.steps||[]} disabled={busy||!editable} onChange={steps=>patch({services:site.services.map((s,n)=>n===i?{...s,steps}:s)})}/>}
             </div>)}</div>
           </>}
           {tab==='gallery'&&<>
