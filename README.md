@@ -19,6 +19,8 @@ npm run dev
 
 预约管理、客户档案、调理师、客户沟通、门店与时段、品牌与内容、图片素材、用户及 RBAC、通知、资料导入和日志沿用现有接口。养护项目继续在原“品牌与内容”模块维护，各门店权限和数据范围仍由后端校验。客服默认约 5 秒同步并增加随机间隔；微信消息需另行完成真实平台配置。
 
+客服按“待接入 → 接待中 → 已结束”管理。员工先点击“接入会话”成为本次接待人，才能回复或结束；其他员工只能查看，交接需先退回待接入。结束前二次确认，结束后历史只读，不能重新打开；客户再次咨询会创建新会话。更新需同时使用配套 Java API，步骤与验收见后端的 [客服接入和结束说明](https://github.com/Ghostisme/yuhetang-miniprogram-backend/blob/main/docs/客服会话接入与结束.md)。
+
 ## 独立构建和发布
 
 ```powershell
@@ -36,6 +38,10 @@ npm run package:release -- --release-id 20261107-180000
 
 ```powershell
 npm run typecheck
+# 无需启动服务器，直接对构建产物注入接口响应
+npm run verify:customer-chat
+# 先在相邻小程序仓库构建 H5，再验证客户结束和发起新咨询
+npm run verify:chat-customer
 # 另一个终端先运行 npm run dev；以下外观检查将所有 API 替换为浏览器内示例数据
 npm run verify:appearance
 $env:VIEWPORT_BASE='http://127.0.0.1:5181'
@@ -43,6 +49,6 @@ $env:VIEWPORT_PASSWORD='隔离测试环境的账号密码'
 npm run verify:viewport
 ```
 
-外观检查覆盖总部、门店、四种屏幕尺寸及各管理页面，并检查统计卡片、图片卡片、门店选择器和预约弹窗；所有 API 均由 Playwright 拦截，不连接业务库、不发送微信消息。可通过 `APPEARANCE_BASE` 指向本地生产构建预览，截图与结果默认在 `backups/admin-appearance/`。`verify:viewport` 使用隔离环境登录并注入长客服记录。其他 `verify:*` 联调脚本会创建或修改测试业务记录，只能对隔离 local 测试环境运行。截图、结果、日志、发布包和密钥不提交 Git。
+外观检查覆盖总部、门店、四种屏幕尺寸及各管理页面，并检查统计卡片、图片卡片、门店选择器和预约弹窗；所有 API 均由 Playwright 拦截，不连接业务库、不发送微信消息。可通过 `APPEARANCE_BASE` 指向本地生产构建预览，截图与结果默认在 `backups/admin-appearance/`。`verify:customer-chat` 和 `verify:chat-customer` 也仅验证构建产物与内存响应，不启动服务器或访问真实 API。`verify:viewport` 使用隔离环境登录并注入长客服记录。其他 `verify:*` 联调脚本会创建或修改测试业务记录，只能对隔离 local 测试环境运行。截图、结果、日志、发布包和密钥不提交 Git。
 
 本轮在独立 H2 内存库完成 Taro 预约提交、后台下拉框和客服双向收发验证；这些结果不代表真实微信消息已投递或云端部署已更新。

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {chromium} from 'playwright'
-import {mkdir,writeFile} from 'node:fs/promises'
-import {resolve} from 'node:path'
+import {mkdir,readFile,writeFile} from 'node:fs/promises'
+import {resolve,sep,extname} from 'node:path'
 
 // Every API request is answered in-browser. No business database or WeChat API is contacted.
 const base=process.env.CHAT_VERIFY_BASE||'http://127.0.0.1:5181'
@@ -10,11 +10,20 @@ await mkdir(output,{recursive:true})
 const browser=await chromium.launch({channel:'msedge',headless:true})
 const checks=[],errors=[],requests=[]
 const now=new Date().toISOString()
-const conversation=i=>({id:`fixture-${i}`,displayName:`测试客户${i}`,channel:'WECHAT',storeId:'bailemen',storeName:'百乐门店',status:i===1?'RESOLVED':'OPEN',activeRoute:true,replyRemaining:5,replyDeadline:Math.floor(Date.now()/1000)+172800,lastSeq:100,lastPreview:`客户咨询内容${i}`,updatedAt:now,unread:i===1?2:0})
+const conversations=Array.from({length:35},(_,index)=>({id:`fixture-${index+1}`,displayName:`测试客户${index+1}`,channel:'WECHAT',storeId:'bailemen',storeName:'百乐门店',status:index===0?'RESOLVED':index===2?'ACTIVE':'OPEN',assignedAdminId:index===2?'other-agent':'',assignedAdminName:index===2?'另一位客服':'',endedAt:index===0?now:null,activeRoute:true,replyRemaining:5,replyDeadline:Math.floor(Date.now()/1000)+172800,lastSeq:100,lastPreview:`客户咨询内容${index+1}`,updatedAt:now,unread:index===0?2:0}))
+const conversation=i=>{const c=conversations[i-1],mine=c.assignedAdminId==='fixture-admin';return {...c,canAccept:c.status==='OPEN',canReply:c.status==='ACTIVE'&&mine,canEnd:c.status==='ACTIVE'&&mine,canRelease:c.status==='ACTIVE'}}
 const message=i=>({id:`message-${i}`,seq:i,direction:i%2?'IN':'OUT',kind:'text',content:`测试聊天内容${i}`,senderName:'测试店长',deliveryStatus:i%2?'RECEIVED':'SENT',createdAt:now})
 const context=await browser.newContext({viewport:{width:2560,height:1440}})
 await context.addInitScript(()=>sessionStorage.setItem('yht-admin-token','fixture-browser-token'))
-let failList=false,sendCount=0
+const dist=resolve('dist')
+await context.route('**/*',async route=>{
+  const url=new URL(route.request().url());if(url.origin!==base)return route.abort()
+  const path=resolve(dist,'.'+url.pathname);assert(path===dist||path.startsWith(dist+sep))
+  const file=extname(path)?path:resolve(dist,'index.html')
+  const contentType={'.js':'application/javascript','.css':'text/css','.html':'text/html','.svg':'image/svg+xml','.webp':'image/webp'}[extname(file)]||'application/octet-stream'
+  return route.fulfill({contentType,body:await readFile(file)})
+})
+let failList=false,sendCount=0,holdThread='',heldReply,heldStarted
 await context.route('**/api/**',async route=>{
   const request=route.request(),url=new URL(request.url()),path=url.pathname,method=request.method()
   requests.push({path,search:url.search,method})
@@ -23,21 +32,32 @@ await context.route('**/api/**',async route=>{
   if(path==='/api/admin/me')return json({id:'fixture-admin',name:'测试总部',hq:true,storeId:'',permissions:['dashboard:read','chat:read','chat:reply','chat:route']})
   if(path==='/api/admin/stores')return json([{id:'yuyao',name:'余姚门店',enabled:true},{id:'bailemen',name:'百乐门店',enabled:true}])
   if(path==='/api/admin/dashboard')return json({counts:[],trend:[],sources:[],recent:[]})
+  if(path==='/api/admin/chats/unread')return json({unreadTotal:2,latestSeq:100})
   if(path==='/api/admin/chats'){
     if(failList&&url.search)return route.fulfill({status:502,json:{message:'测试：会话服务暂不可用'}})
-    let items=Array.from({length:35},(_,i)=>conversation(i+1))
+    let items=conversations.map((_,i)=>conversation(i+1))
     if(url.searchParams.get('storeId'))items=items.filter(c=>c.storeId===url.searchParams.get('storeId'))
     if(url.searchParams.get('status'))items=items.filter(c=>c.status===url.searchParams.get('status'))
     const q=url.searchParams.get('q');if(q)items=items.filter(c=>c.displayName.includes(q))
     const total=items.length,page=Math.max(1,Math.min(Number(url.searchParams.get('page'))||1,Math.ceil(total/30)||1))
     return json({items:items.slice((page-1)*30,page*30),page,total,pageSize:30,unreadTotal:items.reduce((n,c)=>n+c.unread,0)})
   }
+  const reception=path.match(/^\/api\/admin\/chats\/fixture-(\d+)\/(accept|end|release)$/)
+  if(reception&&method==='POST'){
+    const c=conversations[Number(reception[1])-1],action=reception[2]
+    if(action==='accept'){assert.equal(c.status,'OPEN');c.status='ACTIVE';c.assignedAdminId='fixture-admin';c.assignedAdminName='测试总部'}
+    if(action==='end'){assert.equal(c.status,'ACTIVE');assert.equal(c.assignedAdminId,'fixture-admin');c.status='RESOLVED';c.endedAt=now;c.unread=0}
+    if(action==='release'){assert.equal(c.status,'ACTIVE');c.status='OPEN';c.assignedAdminId='';c.assignedAdminName=''}
+    return json(conversation(Number(reception[1])))
+  }
   if(/^\/api\/admin\/chats\/fixture-\d+\/messages$/.test(path)){
     if(method==='POST'){
-      sendCount++
+      assert.equal(conversation(Number(path.split('/')[4].split('-')[1])).canReply,true);sendCount++
       return json({...message(101),id:'failed-send',direction:'OUT',content:request.postDataJSON().content,deliveryStatus:'FAILED',errorMessage:'消息尚未提交微信：微信错误码 40164：服务器出口 IP 不在微信 IP 白名单。'})
     }
-    return json({conversation:conversation(Number(path.split('/')[4].split('-')[1])),items:Number(url.searchParams.get('after'))?[]:Array.from({length:100},(_,i)=>message(i+1))})
+    const result={conversation:conversation(Number(path.split('/')[4].split('-')[1])),items:Number(url.searchParams.get('after'))?[]:Array.from({length:100},(_,i)=>message(i+1))}
+    if(holdThread===path){holdThread='';heldStarted?.();await new Promise(resolve=>{heldReply=resolve})}
+    return json(result)
   }
   if(/^\/api\/admin\/chats\/fixture-\d+\/read$/.test(path)&&method==='PATCH')return json({ok:true})
   errors.push(`Unexpected mocked request: ${method} ${path}`)
@@ -74,12 +94,51 @@ try{
   checks.push({case:'HQ entry clears unrelated store filter; resolved unread conversation opens automatically'})
   await layout(2560,1440);await layout(1366,768)
 
+  assert(await page.getByLabel('回复消息',{exact:true}).isDisabled())
+  assert.equal(await page.getByRole('button',{name:'重新打开',exact:true}).count(),0)
+  assert.equal(await page.getByRole('button',{name:'接入会话',exact:true}).count(),0)
+  assert.match(await page.locator('.chat-session-note').innerText(),/已结束/)
+  checks.push({case:'Ended history is read-only and has no reopen or accept action'})
+  await page.locator('.chat-list-item').filter({has:page.getByText('测试客户2',{exact:true})}).first().click()
+  await page.getByRole('button',{name:'接入会话',exact:true}).waitFor()
+  assert(await page.getByLabel('回复消息',{exact:true}).isDisabled())
+  await page.getByRole('button',{name:'接入会话',exact:true}).click()
+  await page.getByLabel('回复消息',{exact:true}).waitFor({state:'visible'})
+  await page.waitForFunction(()=>!document.querySelector('.chat-reply textarea').disabled)
+  assert.match(await page.locator('.chat-session-note').innerText(),/测试总部（我）/)
+  checks.push({case:'Waiting conversation requires explicit reception and displays assigned agent'})
   await page.getByLabel('回复消息',{exact:true}).fill('验证明确的微信凭证失败')
-  await page.locator('.chat-reply').getByRole('button',{name:'发送',exact:true}).click()
+  await page.getByLabel('回复消息',{exact:true}).press('Enter')
   await page.getByRole('alert').filter({hasText:'40164'}).waitFor()
   assert.match(await page.locator('.chat-bubble').last().innerText(),/40164/)
   assert.equal(sendCount,1,'A failed send must not be retried automatically')
   checks.push({case:'Failed send remains in history with actionable provider code; no automatic resend'})
+
+  const composer=page.getByLabel('回复消息',{exact:true})
+  await composer.fill('保留换行');await composer.press('Shift+Enter')
+  await composer.dispatchEvent('compositionstart');await composer.press('Enter');await composer.dispatchEvent('compositionend')
+  assert.equal(sendCount,1,'IME confirmation and Shift+Enter must not send')
+  await page.getByRole('button',{name:'结束对话',exact:true}).click()
+  assert.equal(conversations[1].status,'ACTIVE','Opening confirmation must not end a session')
+  await page.getByRole('button',{name:'暂不结束',exact:true}).click()
+  holdThread='/api/admin/chats/fixture-2/messages'
+  await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('No thread poll to hold')),12000);heldStarted=()=>{clearTimeout(timeout);resolve()}})
+  await page.getByRole('button',{name:'结束对话',exact:true}).click();await page.getByRole('button',{name:'确认结束',exact:true}).click()
+  await page.getByRole('status').filter({hasText:'本次会话已结束'}).waitFor()
+  heldReply();await page.waitForTimeout(150)
+  assert(await composer.isDisabled());assert.equal(conversations[1].status,'RESOLVED')
+  assert.match(await page.locator('.chat-session-note').innerText(),/本次会话已结束/)
+  checks.push({case:'A delayed pre-end poll cannot restore the previous active session'})
+  checks.push({case:'Enter sends once; Shift+Enter and IME do not send; ending requires confirmation and disables replies'})
+  await page.locator('.chat-list-item').filter({has:page.getByText('测试客户3',{exact:true})}).first().click()
+  await page.getByRole('status').filter({hasText:'当前接待：另一位客服'}).waitFor()
+  assert(await composer.isDisabled());assert.equal(await page.getByRole('button',{name:'接入会话',exact:true}).count(),0)
+  assert.equal(await page.getByRole('button',{name:'结束对话',exact:true}).count(),0)
+  await page.getByRole('button',{name:'退回待接入',exact:true}).click()
+  await page.getByRole('button',{name:'接入会话',exact:true}).click()
+  await page.waitForFunction(()=>!document.querySelector('.chat-reply textarea').disabled)
+  checks.push({case:'Another agent owns replies; HQ explicitly requeues before accepting a handover'})
+  await page.screenshot({path:resolve(output,'chat-reception.png'),fullPage:true})
 
   await page.getByRole('button',{name:'下一页',exact:true}).click()
   await page.locator('.chat-list-item').first().filter({hasText:'测试客户31'}).waitFor()
@@ -120,4 +179,4 @@ try{
   assert.deepEqual(errors,[])
   await writeFile(resolve(output,'result.json'),JSON.stringify({status:'passed',liveApisUsed:false,sendCount,checks,errors,requestCount:requests.length},null,2))
   console.log(JSON.stringify({status:'passed',cases:checks.length,sendCount,output},null,2))
-}finally{await browser.close()}
+}catch(error){await page.screenshot({path:resolve(output,'failure.png'),fullPage:true});console.error(await page.locator('.chat-thread').innerText().catch(()=>''));throw error}finally{await browser.close()}
