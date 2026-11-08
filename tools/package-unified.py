@@ -136,6 +136,12 @@ def main():
             require(content == (ROOT / 'dist' / name).read_bytes(), 'Admin ZIP/build differ: ' + name)
     built_after_sources(mini, mini / 'dist/weapp/app.js')
     built_after_sources(mini, mini / 'dist/h5/index.html')
+    native_report = json.loads((mini / 'backups/weapp-native/result.json').read_text(encoding='utf-8'))
+    native_styles = {p.relative_to(mini / 'dist/weapp').as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                     for p in (mini / 'dist/weapp').rglob('*.wxss')}
+    require(native_report.get('status') == 'passed' and not native_report.get('failures')
+            and native_report.get('files') == native_styles and bool(native_styles),
+            'Run the native WXSS compiler against the current mini build before packaging')
     payload = {}
     for prefix, files in (('server/java/', java), ('server/admin/', admin)):
         payload.update({prefix + name: value for name, value in files.items()})
@@ -158,7 +164,7 @@ def main():
     for name in ('initialize-official-stores.py', 'initialize-client-services.py', 'initialize-local-content.py'):
         payload['optional-data/tools/' + name] = (backend / 'tools' / name).read_bytes()
     payload['tools/configure-staff-wechat.py'] = (backend / 'tools/configure-staff-wechat.py').read_bytes()
-    for name in ('消息通知验收与店长接入.md', '客服会话接入与结束.md', '客户品项独立初始化.md', '本地示例内容补充.md', '官网门店初始化.md', '客户资料与会员来源.md'):
+    for name in ('消息通知验收与店长接入.md', '客服会话接入与结束.md', '客户品项独立初始化.md', '本地示例内容补充.md', '官网门店初始化.md', '客户资料与会员来源.md', '会员跨店预约与支付预留.md'):
         payload['docs/' + name] = (backend / 'docs' / name).read_bytes()
     payload['docs/客服接待与官方工具.md'] = (ROOT / 'deploy/unified/客服接待说明.md').read_bytes()
     for name in ('update.py', 'update.sh', 'initialize.py'):
@@ -166,6 +172,11 @@ def main():
     readme = (ROOT / 'deploy/unified/README.md').read_text(encoding='utf-8')
     payload['README.md'] = readme.replace('{{RELEASE_ID}}', args.release_id).replace('{{JAVA_SHA256}}', jar_sha).encode('utf-8')
     payload['validation/java-component.json'] = java['validation.json']
+    payload['validation/client-native-wxss.json'] = (json.dumps(native_report, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+    for repo, source, target in ((ROOT, 'cross-store-payments', 'admin-cross-store-payments'), (mini, 'i18n', 'client-internationalization')):
+        report = json.loads((repo / ('backups/' + source + '/result.json')).read_text(encoding='utf-8'))
+        require(report.get('status') == 'passed' and not report.get('liveApisUsed', True), 'Missing isolated verification: ' + source)
+        payload['validation/' + target + '.json'] = (json.dumps(report, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
     login_report = json.loads((mini / 'backups/login-verification/result.json').read_text(encoding='utf-8'))
     require(login_report['status'] == 'passed' and not login_report['liveApisUsed'], 'Missing isolated customer login verification')
     built_h5 = {p.relative_to(mini / 'dist/h5').as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
