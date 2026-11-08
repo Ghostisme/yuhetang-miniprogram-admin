@@ -24,7 +24,7 @@ await context.route('**/*',async route=>{
     const headers={'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,content-type','Access-Control-Allow-Methods':'GET,POST,OPTIONS'}
     const json=(data,status=200)=>route.fulfill({status,headers,json:data})
     if(req.method()==='OPTIONS')return route.fulfill({status:204,headers})
-    if(url.pathname==='/api/site')return json({brandName:'裕和堂',brandEnglish:'YU HE TANG',theme:'sage',hero:{},contact:{phone:'021-50000000'},stores:[{id:'fixture-store',name:'上海中心店',enabled:true}],services:[],sections:[],products:[],galleryGroups:[]})
+    if(url.pathname==='/api/site')return json({brandName:'裕和堂',brandEnglish:'YU Health',theme:'sage',hero:{},contact:{phone:'021-50000000'},stores:[{id:'fixture-store',name:'上海中心店',enabled:true}],services:[],sections:[],products:[],galleryGroups:[]})
     assert.equal(req.headers().authorization,'Bearer fixture-customer-token')
     if(url.pathname==='/api/me/chats'&&req.method()==='POST')return json(sessions[live])
     const thread=url.pathname.match(/^\/api\/me\/chats\/(history|current)\/messages$/)

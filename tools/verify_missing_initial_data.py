@@ -86,7 +86,7 @@ def main():
     try:
         start('bootstrap')
         stop()
-        empty = dict(brandName='裕和堂', brandEnglish='YU HE TANG', tagline='', brandStory='', theme='sage',
+        empty = dict(brandName='裕和堂', brandEnglish='YU Health', tagline='', brandStory='', theme='sage',
                      hero={k: '' for k in content_data['content']['hero']}, contact={k: '' for k in content_data['content']['contact']},
                      sections=[], services=[], products=[], galleryGroups=[], assetLibrary=[], customerServiceEnabled=True, version=1)
         literal = json.dumps(empty, ensure_ascii=False).replace("'", "''")

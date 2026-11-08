@@ -12,7 +12,7 @@ const image=await readFile('public/media/store-02.webp')
 const services=[{id:'care-1',name:'经络调养',category:'东方养护',duration:'60分钟',image:'/media/ritual.webp',enabled:true,subtitle:'舒缓疲劳，照顾日常',description:'根据到店沟通安排适合的养护服务。',steps:['到店沟通','细致养护']}]
 const stores=[{id:'shanghai',name:'上海中心店',district:'浦东新区',image:'/media/store-02.webp',address:'浦东新区花园石桥路158号',hours:'9:00—23:00',phone:'021-50181919',description:'在城市里留一段从容时光。',tag:'东方养护',enabled:true,onlineBooking:true,gallery:['/media/store-02.webp'],services},
   {id:'bailemen',name:'百乐门店',district:'静安区',image:'/media/store-07.webp',address:'上海市静安区',hours:'10:00—22:00',phone:'021-00000000',description:'用心关照每一次到来。',tag:'东方养护',enabled:true,onlineBooking:false,gallery:['/media/store-07.webp'],services:[]}]
-const site={version:1,brandName:'裕和堂',brandEnglish:'YU HE TANG',theme:'sage',tagline:'自在有和',hero:{image:'/media/store-02.webp',title:'从容时光',button:'了解门店'},brandStory:'东方养护',contact:{phone:'021-00000000',message:'欢迎咨询'},stores,services,products:[],sections:[],galleryGroups:[{id:'space',name:'门店空间',images:['/media/store-02.webp']}],customerServiceEnabled:true}
+const site={version:1,brandName:'裕和堂',brandEnglish:'YU Health',theme:'sage',tagline:'自在有和',hero:{image:'/media/store-02.webp',title:'从容时光',button:'了解门店'},brandStory:'东方养护',contact:{phone:'021-00000000',message:'欢迎咨询'},stores,services,products:[],sections:[],galleryGroups:[{id:'space',name:'门店空间',images:['/media/store-02.webp']}],customerServiceEnabled:true}
 const assets=[{id:'one',title:'门店茶室',url:'/media/store-02.webp'},{id:'two',title:'门店环境',url:'/media/store-07.webp'},{id:'three',title:'养护空间',url:'/media/ritual.webp'}]
 const browser=await chromium.launch({channel:'msedge',headless:true})
 async function fixture(context,{readonly=false}={}){
