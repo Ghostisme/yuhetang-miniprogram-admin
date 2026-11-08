@@ -23,6 +23,7 @@
     "verify:dianping": "node tools/verify-dianping.mjs",
     "verify:viewport": "node tools/verify-admin-viewport.mjs",
     "verify:appearance": "node tools/verify-admin-appearance.mjs",
+    "verify:responsive": "node tools/verify-admin-responsive.mjs",
     "package:release": "python tools/package-release.py"
   },
   "dependencies": {
