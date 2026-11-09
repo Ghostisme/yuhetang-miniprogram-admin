@@ -98,10 +98,12 @@ try{
   assert.equal(await page.getByRole('button',{name:'重新打开',exact:true}).count(),0)
   assert.equal(await page.getByRole('button',{name:'接入会话',exact:true}).count(),0)
   assert.match(await page.locator('.chat-session-note').innerText(),/已结束/)
+  assert.equal(await page.getByRole('note',{name:'微信客服回复说明'}).count(),0,'Ended history must not suggest it is still replyable')
   checks.push({case:'Ended history is read-only and has no reopen or accept action'})
   await page.locator('.chat-list-item').filter({has:page.getByText('测试客户2',{exact:true})}).first().click()
   await page.getByRole('button',{name:'接入会话',exact:true}).waitFor()
   assert(await page.getByLabel('回复消息',{exact:true}).isDisabled())
+  assert.match(await page.getByRole('note',{name:'微信客服回复说明'}).innerText(),/接入会话后可回复客户/)
   await page.getByRole('button',{name:'接入会话',exact:true}).click()
   await page.getByLabel('回复消息',{exact:true}).waitFor({state:'visible'})
   await page.waitForFunction(()=>!document.querySelector('.chat-reply textarea').disabled)
@@ -139,6 +141,35 @@ try{
   await page.waitForFunction(()=>!document.querySelector('.chat-reply textarea').disabled)
   checks.push({case:'Another agent owns replies; HQ explicitly requeues before accepting a handover'})
   await page.screenshot({path:resolve(output,'chat-reception.png'),fullPage:true})
+
+  const notice=page.getByRole('note',{name:'微信客服回复说明'})
+  assert.match(await notice.innerText(),/当前可回复客户，剩余 5 条/)
+  assert.match(await notice.innerText(),/\d+月\d+日\s+\d{2}:\d{2}/,'Reply deadline uses an explicit month, day and time')
+  assert.doesNotMatch(await notice.innerText(),/窗口/)
+  checks.push({case:'Reply guidance explains remaining messages and the full deadline in plain language'})
+  const states=[
+    {name:'quota-exhausted',values:{replyRemaining:0},reason:/条数已用完/},
+    {name:'time-expired',values:{replyDeadline:Math.floor(Date.now()/1000)-60},reason:/超过微信允许的回复时间/},
+    {name:'customer-switched-store',values:{activeRoute:false},reason:/客户已切换咨询门店/},
+    {name:'online-chat',values:{channel:'WEB',replyRemaining:0,replyDeadline:0},reason:null}
+  ]
+  for(const [index,state] of states.entries()){
+    const i=index+4,c=conversations[i-1]
+    Object.assign(c,{status:'ACTIVE',assignedAdminId:'fixture-admin',assignedAdminName:'测试总部'},state.values)
+    await page.locator('.chat-list-item').filter({has:page.getByText(`测试客户${i}`,{exact:true})}).click()
+    await page.locator('.chat-thread header').getByText(`测试客户${i} · 百乐门店`,{exact:true}).waitFor()
+    if(state.reason){
+      assert.match(await notice.innerText(),state.reason)
+      assert(await composer.isDisabled(),'No sending after the time, quota or store routing disallows replies')
+      assert(await page.getByRole('button',{name:'发送',exact:true}).isDisabled())
+      assert.doesNotMatch(await composer.getAttribute('placeholder'),/窗口/)
+    }else{
+      assert.equal(await notice.count(),0,'Online chat is not subject to WeChat reply quotas')
+      assert(await composer.isEnabled())
+    }
+    checks.push({case:`Reply guidance and composer agree: ${state.name}`})
+  }
+  assert.equal(sendCount,1,'Unavailable replies must not generate additional sends')
 
   await page.getByRole('button',{name:'下一页',exact:true}).click()
   await page.locator('.chat-list-item').first().filter({hasText:'测试客户31'}).waitFor()
