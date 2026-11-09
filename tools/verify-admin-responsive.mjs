@@ -161,9 +161,23 @@ try{
     }
     for(const [id,module,button] of [['customers','客户档案','维护档案'],['therapists','调理师管理','新增调理师'],['users','用户管理','新建用户'],['roles','角色与权限','新建角色']]){
       await navigate(page,id,module)
+      if(id==='customers'){
+        await page.locator('.customer-directory tbody tr').first().waitFor()
+        const statuses=await page.locator('.customer-directory tbody tr').evaluateAll(rows=>rows.slice(0,4).map(row=>row.cells[2].textContent.trim()))
+        assert.deepEqual([statuses[0],statuses[2]],['非会员','非会员'],'Numeric 0 and boolean false must not leak into customer rows')
+        assert(statuses[1].includes('会员归属：')&&statuses[3].includes('会员归属：'),'Numeric 1 and boolean true must retain member details')
+      }
       await page.getByRole('button',{name:button,exact:true}).first().click()
       await modalFits(page)
       const dialog=page.getByRole('dialog').last()
+      if(id==='customers'){
+        assert.equal(await dialog.locator('.customer-edit').evaluate(form=>[...form.childNodes].filter(node=>node.nodeType===Node.TEXT_NODE).map(node=>node.textContent).join('').trim()),'','Non-member editor must not render stray numeric flags')
+        assert.equal(await dialog.getByRole('combobox',{name:'会员归属门店',exact:true}).count(),0)
+        await dialog.getByRole('switch',{name:'会员标识',exact:true}).click()
+        await dialog.getByRole('combobox',{name:'会员归属门店',exact:true}).waitFor()
+        await dialog.getByRole('switch',{name:'会员标识',exact:true}).click()
+        assert.equal(await dialog.getByRole('combobox',{name:'会员归属门店',exact:true}).count(),0,'Disabling membership must hide member details again')
+      }
       assert.equal(await dialog.locator('input,textarea,.admin-select').evaluateAll(rows=>rows.filter(e=>{
         const r=e.getBoundingClientRect(),d=e.closest('.ant-modal-body').getBoundingClientRect()
         return r.width&&r.height&&(r.left<d.left-1||r.right>d.right+1)

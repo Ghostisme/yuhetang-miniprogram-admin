@@ -72,7 +72,7 @@ export async function mockAdmin(context, hq = true) {
     if(/^\/api\/admin\/stores\/[^/]+\/rules$/.test(path))return json(rules)
     if(/^\/api\/admin\/stores\/[^/]+\/slots$/.test(path))return json([])
     if(path==='/api/admin/therapists')return json(Array.from({length:6},(_,i)=>({id:`therapist-${i}`,storeId:i%2?'yuyao':'bailemen',storeName:i%2?'余姚门店':'百乐门店',name:`示例调理师${i+1}`,grade:'资深调理师',specialty:'经络调养 · 肩颈舒缓',serviceIds:['care-1','care-2'],image:'/media/ritual.webp',enabled:true,resting:i===3,showOnClient:true})))
-    if(path==='/api/admin/customers')return json({items:Array.from({length:12},(_,i)=>({id:`customer-${i}`,name:`示例客户${i+1}`,phone:'138****0000',storeId:'bailemen',memberVerified:i%2===0,memberGrade:'常客',privateNote:'已沟通预约时间，下次到店前联系确认。',source:'微信小程序',sharedNote:''})),total:12})
+    if(path==='/api/admin/customers')return json({items:Array.from({length:12},(_,i)=>({id:`customer-${i}`,name:`示例客户${i+1}`,phone:'138****0000',storeId:'bailemen',memberVerified:[0,1,false,true][i%4],memberGrade:'常客',privateNote:'已沟通预约时间，下次到店前联系确认。',source:'微信小程序',sharedNote:''})),total:12})
     if(path==='/api/admin/chats')return json({items:Array.from({length:30},(_,i)=>conversation(i+1)),total:30,page:1,pageSize:30,unreadTotal:2})
     if(/^\/api\/admin\/chats\/chat-\d+\/messages$/.test(path)){
       const after=Number(url.searchParams.get('after'))||0

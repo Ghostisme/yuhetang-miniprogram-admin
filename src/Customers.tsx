@@ -17,7 +17,14 @@ export default function Customers({ ctx, onExport }: { ctx: Ctx; onExport: () =>
   const version=useRef(0)
   async function refresh(){
     const current=++version.current
-    try { const next=await api<Page<Row>>('/api/admin/customers?'+new URLSearchParams({...filters,storeId:ctx.store,page:String(page)}));if(current===version.current){setData(next);setError('')} }
+    try {
+      const next=await api<Page<Row>>('/api/admin/customers?'+new URLSearchParams({...filters,storeId:ctx.store,page:String(page)}))
+      if(current===version.current){
+        // Database-backed responses may use 0/1; JSX must receive a boolean to hide member-only fields.
+        setData({...next,items:next.items.map(customer=>({...customer,memberVerified:customer.memberVerified===true||customer.memberVerified===1}))})
+        setError('')
+      }
+    }
     catch(cause){if(current===version.current)setError((cause as Error).message)}
   }
   useEffect(()=>{setData({items:[],total:0});setRevealed({});setEdit(null);void refresh();return()=>{version.current++}},[ctx.store,page,filters])
