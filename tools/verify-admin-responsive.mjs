@@ -112,6 +112,13 @@ try{
     await page.locator('.chat-list-item').first().click()
     await page.locator('.chat-bubble').first().waitFor()
     const input=page.getByRole('textbox',{name:'回复消息',exact:true})
+    await input.fill(Array.from({length:12},(_,i)=>`长回复第${i+1}行，请保持消息区和发送操作可见。`).join('\n'))
+    await page.waitForTimeout(200)
+    const replyBounds=await page.locator('.chat-reply').boundingBox(),workspaceBounds=await page.locator('.chat-workspace').boundingBox(),sendBounds=await page.getByRole('button',{name:'发送',exact:true}).boundingBox()
+    assert(replyBounds.y+replyBounds.height<=workspaceBounds.y+workspaceBounds.height+1,'Long replies stay inside the conversation pane')
+    assert(sendBounds.y>=replyBounds.y&&sendBounds.y+sendBounds.height<=replyBounds.y+replyBounds.height,'Send remains inside the reply area')
+    assert((await page.locator('.chat-messages').boundingBox()).height>=90,'Long drafts preserve readable chat history')
+    assert(await input.evaluate(e=>e.scrollHeight>e.clientHeight),'Long drafts scroll inside their input')
     await input.fill('多端客服发送测试')
     if(width<768){
       const composer=await input.boundingBox()
