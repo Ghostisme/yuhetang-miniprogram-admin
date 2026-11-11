@@ -22,6 +22,25 @@
 .admin-navigation-drawer .ant-drawer-header { padding:8px 16px; }
 #root .operations .wm-tree-actions .ant-btn { width:32px; min-width:32px; height:32px; min-height:32px; }
 
+/* Wrap a heading and its actions as whole groups. Descriptions may shrink;
+   an action group must not shrink until its buttons break into uneven rows. */
+.operations .card-heading { align-items:flex-start; flex-wrap:wrap; gap:16px; }
+.operations .card-heading > :is(div,h3):first-child:not(.button-row):not(.segmented) { flex:1 1 280px; min-width:0; max-width:100%; }
+.operations .card-heading > .segmented { flex:1 1 320px; min-width:0; max-width:100%; }
+.operations .card-heading > .button-row { flex:0 0 auto; max-width:100%; margin-left:auto; justify-content:flex-end; align-items:center; gap:8px; }
+.operations .card-heading > :is(.ant-btn,.upload-label,svg,.ant-tag) { flex-shrink:0; max-width:100%; }
+.operations .card-heading > .button-row > .ant-btn { flex-shrink:0; max-width:100%; }
+.operations .card-heading :is(h3,p) { overflow-wrap:anywhere; }
+.operations .content-toolbar { align-items:flex-start; flex-wrap:wrap; }
+.operations .content-toolbar > .segmented { flex:1 1 340px; min-width:0; }
+.operations .content-toolbar > .button-row { flex:0 0 auto; max-width:100%; justify-content:flex-end; }
+.operations .wm-toolbar > div:first-child { flex:1 1 280px; min-width:0; }
+.operations .wm-toolbar-actions { flex:0 0 auto; max-width:100%; }
+/* These toolbars live in portalled customer drawers, outside .operations. */
+:is(.member-wallet-toolbar,.consumption-admin-toolbar) { flex-wrap:wrap; align-items:flex-start; }
+:is(.member-wallet-toolbar,.consumption-admin-toolbar) > :is(p,div:not(.button-row)) { flex:1; min-width:min(100%,260px); }
+:is(.member-wallet-toolbar,.consumption-admin-toolbar) > .button-row { flex:0 0 auto; max-width:100%; }
+
 /* Filters can wrap and customer profiles have a second panel below the list.
    Preserve usable rows instead of shrinking the scroller behind its header. */
 @media (min-width:768px) {
@@ -95,6 +114,8 @@
   .operations .ops-card { padding:16px; border-radius:10px; margin-bottom:16px; }
   .operations .card-heading { align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
   .operations .card-heading > div,.operations .card-heading > .button-row { min-width:0; max-width:100%; }
+  .operations .card-heading > .button-row { margin-left:0; justify-content:flex-start; }
+  .operations .content-toolbar > .button-row { justify-content:flex-start; }
   .operations .button-row { gap:8px; }
   .operations .card-heading > .segmented { width:100%; }
   .operations .ops-main[data-page=appointments] .card-heading > .segmented { display:flex; flex-wrap:nowrap; gap:4px; }

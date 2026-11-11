@@ -1,14 +1,44 @@
-.customer-directory .customer-filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0}
-.customer-directory .customer-filters>.ant-input{width:260px}
-.customer-directory .customer-filters .admin-select{min-width:160px}
+.customer-directory{container-type:inline-size}
+.operations .customer-directory .customer-filters{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,180px) minmax(150px,180px) max-content max-content;align-items:center;gap:12px;margin:20px 0}
+.operations .customer-directory .customer-filters>.ant-input,.operations .customer-directory .customer-filters>.admin-select{width:100%;min-width:0;grid-column:auto}
+.operations .customer-directory .customer-filters>.ant-btn{justify-self:start}
 .customer-count,.customer-muted{font-size:12px;color:var(--muted,#7d8879)}
-.customer-count{margin-left:auto}
+.operations .customer-directory .customer-count{margin-left:0;justify-self:end;white-space:nowrap;grid-column:auto;width:auto}
 .customer-directory .ant-pagination{margin-top:22px;justify-content:flex-end}
 .customer-directory .ops-table{min-width:1010px}
+.customer-directory .table-scroll{overscroll-behavior:contain}
 .customer-directory .ops-table td{vertical-align:top}
 .customer-directory .ops-table small{display:block;margin-top:7px;line-height:1.7;color:#7a8576}
 .customer-directory .ops-table .ant-tag{margin:0 6px 6px 0}
 .customer-note{max-width:240px;white-space:normal;overflow-wrap:anywhere}
 .customer-edit{display:grid;gap:18px;padding-top:12px}.customer-edit p{margin:0;line-height:1.7}.customer-edit .ant-alert{margin-bottom:8px}
 .ant-modal .customer-edit .admin-field,.ant-modal .customer-edit .toggle-field{margin:0}
-@media(max-width:680px){.customer-directory .customer-filters>.ant-input{width:100%}.customer-count{width:100%;margin-left:0}}
+/* Respond to the card's usable width, including when a desktop sidebar is open. */
+@container (max-width:850px){
+ .operations .customer-directory .customer-filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr) max-content}
+ .operations .customer-directory .customer-filters>.ant-input{grid-column:1 / 3;grid-row:1}
+ .operations .customer-directory .customer-filters>.ant-btn{grid-column:3;grid-row:1;justify-self:end}
+ .operations .customer-directory .customer-filters>.admin-select{grid-row:2}
+ .operations .customer-directory .customer-count{grid-column:3;grid-row:2}
+}
+@container (max-width:520px){
+ .operations .customer-directory .customer-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .operations .customer-directory .customer-filters>.ant-input{grid-column:1 / -1}
+ .operations .customer-directory .customer-filters>.ant-btn{grid-column:1;grid-row:3;justify-self:start}
+ .operations .customer-directory .customer-count{grid-column:2;grid-row:3}
+}
+
+.customer-row-actions{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;max-width:100%}
+/* Six wide columns hide profile actions on tablets; keep each record together. */
+@media(min-width:768px) and (max-width:1023px){
+ .operations .customer-directory .responsive-table{display:block;position:relative;min-width:0;white-space:normal}
+ .operations .customer-directory .responsive-table thead{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%)}
+ .operations .customer-directory .responsive-table tbody{display:grid;gap:12px}
+ .operations .customer-directory .responsive-table tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;border:1px solid #e0e7db;border-radius:8px;padding:8px 16px;background:#fff}
+ .operations .customer-directory .responsive-table td{display:grid;grid-template-columns:94px minmax(0,1fr);align-items:start;gap:8px;min-width:0;padding:12px 0;border-bottom:1px solid #edf1e8;white-space:normal}
+ .operations .customer-directory .responsive-table td::before{content:attr(data-label);color:#7b8572;font-size:12px;line-height:1.8}
+ .operations .customer-directory .responsive-table td:nth-last-child(-n+2){border-bottom:0}
+ .operations .customer-directory .responsive-cell-content{min-width:0;overflow-wrap:anywhere}
+}
+@media(max-width:767px){.operations .customer-directory .ops-table{min-width:0}}
+@media(max-width:767px){.customer-row-actions{flex-direction:column;align-items:flex-start}.customer-row-actions .ant-btn{max-width:100%}}

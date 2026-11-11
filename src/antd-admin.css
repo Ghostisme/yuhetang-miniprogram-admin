@@ -48,7 +48,13 @@
 #root .operations .ant-switch { min-height:0; }
 #root .operations .ant-pagination-item a { padding:0 6px; }
 .admin-modal .ant-input { min-height:38px; }
+.admin-modal { --admin-control-height:38px; }
+/* Portalled dialogs need the same control metrics as forms inside the admin shell. */
+.admin-modal input.ant-input { height:var(--admin-control-height);min-height:var(--admin-control-height);padding:6px 11px;font-size:14px;line-height:1.6; }
+.admin-modal .admin-select .ant-select { height:var(--admin-control-height);min-height:var(--admin-control-height);font-size:14px; }
+.admin-modal .ant-input-affix-wrapper { height:var(--admin-control-height);min-height:var(--admin-control-height);padding:4px 11px; }
 .admin-modal .ant-input-affix-wrapper .ant-input { min-height:0; }
+.admin-modal .ant-input-affix-wrapper input.ant-input { height:auto;min-height:0;padding:0;border:0;background:transparent; }
 .admin-modal .ant-switch { flex-shrink:0; }
 #root .operations .notification-channel-tabs .ant-btn.active,
 #root .operations .store-scope-shortcuts .ant-btn[aria-pressed=true] { background:#53704b; color:#fff; }
@@ -59,6 +65,7 @@
 .ant-modal .button-row { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:16px; }
 .ant-modal .toggle-field { display:inline-flex; align-items:center; gap:9px; margin:8px 14px 8px 0; font-size:13px; }
 .ant-modal .admin-note,.ant-modal .field-note { padding:12px; margin:14px 0; background:#f0f4e8; color:#748069; font-size:13px; line-height:1.8; }
+.operations p.field-note,.admin-modal p.field-note { display:block;font-size:13px!important; }
 .ant-modal .admin-error { margin:12px 0; color:#a64532; font-size:13px; line-height:1.8; }
 .ant-modal .a-primary { background:#53704b; color:#fff; }
 .ant-modal .a-danger { color:#b74938; }
@@ -87,6 +94,10 @@
 .admin-modal .ant-btn { height:38px; min-height:38px; display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:6px; font-size:14px; }
 .admin-modal .ant-btn-primary { background:#53704b; color:#fff; }
 .admin-modal .ant-modal-close { display:flex; align-items:center; justify-content:center; }
+@media(max-width:767px) {
+  .admin-modal { --admin-control-height:44px; }
+  .admin-modal input.ant-input,.admin-modal .admin-select .ant-select { font-size:16px; }
+}
 @media(max-width:750px) {
   .admin-modal .ant-modal-container { max-height:calc(100dvh - 32px); padding:20px 16px; }
 }

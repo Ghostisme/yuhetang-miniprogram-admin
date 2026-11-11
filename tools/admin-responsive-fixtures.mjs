@@ -26,10 +26,16 @@ const bookings = Array.from({length:26},(_,i)=>({id:`YHT-APPOINTMENT-${i+1}`,cus
 const users = [{id:'store-user',username:'store-demo',displayName:'示例店长',storeId:'bailemen',enabled:true,roleIds:['manager']},{id:'hq-user',username:'headquarters-demo',displayName:'总部管理员',storeId:'',enabled:true,roleIds:['hq']}]
 const roles = [{id:'hq',name:'总部管理员',dataScope:'GLOBAL',builtin:true,permissions},{id:'manager',name:'门店店长',dataScope:'STORE',builtin:false,permissions:permissions.filter(p=>!['imports','integrations'].some(prefix=>p.startsWith(prefix)))}]
 const conversation = i=>({id:`chat-${i}`,displayName:`示例咨询客户${i}`,channel:'WECHAT',storeId:'bailemen',storeName:'百乐门店',status:'ACTIVE',canReply:true,canEnd:true,canAccept:false,canRelease:true,assignedAdminId:'hq-user',assignedAdminName:'总部管理员',activeRoute:true,replyRemaining:5,replyDeadline:Math.floor(Date.now()/1000)+3600,lastSeq:80,lastPreview:'您好，我想了解门店的养护项目和可预约时间。',updatedAt:time,unread:i===1?2:0})
-export async function mockAdmin(context, hq = true) {
+export async function mockAdmin(context, hq = true, {guidesSeen = true} = {}) {
   const currentBookings=structuredClone(bookings)
   const chatState={incoming:[],reads:[]}
-  await context.addInitScript(()=>sessionStorage.setItem('yht-admin-token','appearance-fixture'))
+  await context.addInitScript(({hq,guidesSeen})=>{
+    sessionStorage.setItem('yht-admin-token','appearance-fixture')
+    if(guidesSeen)for(const module of ['appointments','customers','chats','stores','content','notifications']){
+      const key=`yht-admin-guide:v2:${hq?'hq-user':'store-user'}:${module}`
+      if(!localStorage.getItem(key))localStorage.setItem(key,'done')
+    }
+  },{hq,guidesSeen})
   await context.route('**/*',route=>{
     if(new URL(route.request().url()).hostname==='127.0.0.1')return route.continue()
     unknown.push(`External request: ${new URL(route.request().url()).origin}`)
@@ -55,6 +61,14 @@ export async function mockAdmin(context, hq = true) {
     }
     if(path==='/api/admin/inbox/read'&&request.method()==='POST')return json({ok:true})
     if(request.method()!=='GET'){unknown.push(`${request.method()} ${path}`);return route.fulfill({status:405,json:{message:'Visual audit does not write business data'}})}
+    if(path.startsWith('/api/admin/import-guides/')){
+      const match=path.match(/^\/api\/admin\/import-guides\/(members|therapists|stores|services|dianping-customers|dianping-orders)(\/example)?$/)
+      if(match){
+        const extension=match[2]?'xlsx':'json'
+        const body=await readFile(resolve('../yuhetang-miniprogram-backend/target-api/import-guide-fixtures',`${match[1]}.${extension}`))
+        return route.fulfill({body,contentType:extension==='json'?'application/json':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})
+      }
+    }
     if(path==='/api/admin/wechat-menu')return json({revision:1,draft:{button:[{name:'门店预约',type:'view',url:'https://www.yuhetangtcm.com'}]},savedAt:time,credentialsConfigured:true,pages:[{name:'预约',path:'pages/booking/index'}]})
     if(path==='/api/admin/inbox/summary')return json({items:[{id:'notice-1',appointmentId:currentBookings[0].id,storeId:'bailemen',eventLabel:'新预约申请',payload:{storeName:'百乐门店',serviceName:'经络调养',time:'2026-11-09 10:00'},createdAt:time}],unreadTotal:1,total:1,asOf:time})
     if(path==='/api/admin/chats/unread')return json({unreadTotal:2,latestSeq:80})
@@ -88,6 +102,7 @@ export async function mockAdmin(context, hq = true) {
     if(path==='/api/admin/notifications')return json({items:[{id:'delivery-1',appointmentId:currentBookings[0].id,createdAt:time,channelGroup:'WECHAT',channel:'SERVICE',audience:'门店接收人',eventLabel:'新预约申请',deliveryStatus:'ACCEPTED',attempts:1,lastError:''}],total:1})
     if(path==='/api/admin/audit')return json({items:Array.from({length:40},(_,i)=>({id:`audit-${i}`,createdAt:time,actorName:'示例店长',storeId:'bailemen',action:'APPOINTMENT_CONFIRM',targetId:`APPOINTMENT-${i+1}`,detail:'确认客户到店预约'})),total:40})
     if(path==='/api/admin/integrations')return json({pms:{enabled:false,port:8791,schemaVersion:1,pending:0,description:'业务事件接口待接入'}})
+    if(path==='/api/admin/launch-mode')return json({enabled:false,revision:0,updatedAt:'',title:{zh:'温馨提示',en:'A warm reminder',ja:'ご案内'},message:{zh:'小程序正在建设中，暂仅供浏览。',en:'Coming soon. Browsing only.',ja:'準備中・閲覧のみ'}})
     if(path==='/api/admin/settings')return json({sharedLookupEnabled:'false',serviceTemplateMapping:'{}',customerTemplateMapping:'{"name1":"customerName","date2":"time","thing3":"serviceName","thing4":"storeName","phrase5":"status"}',customerReminderTemplateMapping:'{"thing31":"customerName","time2":"time","thing7":"serviceName","thing8":"storeName","phrase11":"status"}'})
     if(path==='/api/admin/dianping/config')return json({shops:[],products:[],batches:[],stores,orderCount:0,customerLinkCount:0})
     if(path==='/api/admin/dianping/orders')return json({items:[],total:0})

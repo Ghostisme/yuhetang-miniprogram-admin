@@ -24,6 +24,8 @@
     "verify:viewport": "node tools/verify-admin-viewport.mjs",
     "verify:appearance": "node tools/verify-admin-appearance.mjs",
     "verify:responsive": "node tools/verify-admin-responsive.mjs",
+    "verify:actions": "node tools/verify-admin-actions.mjs",
+    "verify:appointment-layout": "node tools/verify-appointment-layout.mjs",
     "package:release": "python tools/package-release.py"
   },
   "dependencies": {

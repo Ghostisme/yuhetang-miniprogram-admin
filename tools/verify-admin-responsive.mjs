@@ -61,12 +61,15 @@ async function inspect(page,name){
 }
 async function modalFits(page){
   await page.waitForTimeout(300) // Measure the settled dialog, after Ant Design's entrance animation.
+  await page.getByRole('dialog').last().evaluate(async element=>{
+    await Promise.allSettled(element.getAnimations({subtree:true}).filter(animation=>animation.effect?.getTiming().iterations!==Infinity).map(animation=>animation.finished))
+  })
   const dialog=page.getByRole('dialog').last(),box=await dialog.boundingBox(),viewport=page.viewportSize()
   assert(box.x>=0&&box.y>=0&&box.x+box.width<=viewport.width+1&&box.y+box.height<=viewport.height+1,'Dialog must fit screen')
   const overflow=await dialog.evaluate(e=>e.scrollWidth>e.clientWidth+1)
   assert(!overflow,'Dialog content must fit its own width')
-  if(viewport.width<768)for(const button of await dialog.locator('.ant-modal-body .ant-btn').evaluateAll(rows=>rows.map(e=>({height:e.getBoundingClientRect().height,fontSize:parseFloat(getComputedStyle(e).fontSize)})).filter(e=>e.height))){
-    assert(button.height>=44,'Phone dialog actions must be touch sized')
+  if(viewport.width<768)for(const button of await dialog.locator('.ant-modal-body .ant-btn').evaluateAll(rows=>rows.map(e=>({text:e.textContent,height:e.getBoundingClientRect().height,fontSize:parseFloat(getComputedStyle(e).fontSize)})).filter(e=>e.height))){
+    assert(button.height>=44,`Phone dialog actions must be touch sized: ${JSON.stringify({viewport,button})}`)
     assert(button.fontSize>=14,'Phone dialog actions must remain legible')
   }
 }

@@ -2,9 +2,22 @@
 .appointment-detail .detail-status>span { overflow-wrap:anywhere; }
 .appointment-detail .detail-status>button { margin-left:auto; }
 .appointment-detail .appointment-facts,.appointment-detail .detail-actions { min-width:0; }
-.appointment-detail .appointment-facts dl { display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;margin:20px 0; }
+.appointment-detail .detail-grid { align-items:start; }
+.appointment-detail .appointment-facts dl { display:grid;grid-template-columns:110px minmax(0,1fr);align-items:baseline;gap:12px;margin:20px 0;font-size:13px;line-height:1.8; }
 .appointment-detail .appointment-facts dt { color:#778171; }
 .appointment-detail .appointment-facts dd { margin:0;overflow-wrap:anywhere; }
+.appointment-detail .appointment-contact { display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;white-space:normal; }
+.appointment-detail .appointment-contact > span { white-space:nowrap; }
+.appointment-detail .appointment-contact .a-link { margin:0;padding:0;font-size:13px; }
+.appointment-detail .detail-actions { padding:20px; }
+.appointment-detail .detail-actions > h4 { margin:0 0 14px; }
+.appointment-detail .detail-actions .ant-btn { font-size:13px;padding:0 12px; }
+.appointment-detail .appointment-action-section { display:grid;gap:12px;margin-top:20px;padding-top:20px;border-top:1px solid #e0e7d8; }
+.appointment-detail .appointment-action-section > h4 { margin:0; }
+.appointment-detail .appointment-action-section .admin-field { margin:0; }
+.appointment-detail .appointment-action-section .field-note { margin:0;padding:0;background:transparent; }
+.appointment-detail .appointment-action-section > .ant-btn { justify-self:start;max-width:100%; }
+.appointment-detail .appointment-reschedule-fields { gap:12px;align-items:end; }
 .appointment-detail .appointment-current-time { color:#52634e;line-height:1.9; }
 .reschedule-review { padding:18px;border:1px solid #e0e7dc;border-radius:10px;background:#f6f8f3; }
 .reschedule-review.is-pending { background:#faf7ee;border-color:#e8d9b6; }
@@ -18,4 +31,5 @@
 .reschedule-comparison strong { font-size:14px;overflow-wrap:anywhere; }
 .reschedule-review-actions { display:grid;gap:10px;margin:14px 0 20px; }
 .appointment-error { padding:12px 16px;margin-bottom:16px;border-radius:6px;background:#fff2ef;color:#a94939; }
+@media(max-width:767px){.appointment-detail .appointment-action-section > .ant-btn{width:100%;justify-self:stretch}}
 @media(max-width:600px){.reschedule-comparison{grid-template-columns:1fr;gap:12px}.appointment-detail .appointment-facts dl{grid-template-columns:90px minmax(0,1fr);gap:12px 8px}.appointment-detail .detail-grid{font-size:14px}.reschedule-review{padding:14px}.appointment-detail .detail-actions .button-row{flex-wrap:wrap}}
