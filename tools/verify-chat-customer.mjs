@@ -26,6 +26,7 @@ await context.route('**/*',async route=>{
     if(req.method()==='OPTIONS')return route.fulfill({status:204,headers})
     if(url.pathname==='/api/site')return json({brandName:'裕和堂',brandEnglish:'YU Health',theme:'sage',hero:{},contact:{phone:'021-50000000'},stores:[{id:'fixture-store',name:'上海中心店',enabled:true}],services:[],sections:[],products:[],galleryGroups:[]})
     assert.equal(req.headers().authorization,'Bearer fixture-customer-token')
+    if(url.pathname==='/api/me/profile')return json({name:'已授权客户',phone:'13900003001',phoneVerified:true,complete:true,memberVerified:false,sources:['MINIPROGRAM']})
     if(url.pathname==='/api/me/chats'&&req.method()==='POST')return json(sessions[live])
     const thread=url.pathname.match(/^\/api\/me\/chats\/(history|current)\/messages$/)
     if(thread){

@@ -11,7 +11,8 @@ const browser=await chromium.launch({channel:'msedge',headless:true})
 const checks=[],errors=[],requests=[]
 const now=new Date().toISOString()
 const conversations=Array.from({length:35},(_,index)=>({id:`fixture-${index+1}`,displayName:`测试客户${index+1}`,channel:'WECHAT',storeId:'bailemen',storeName:'百乐门店',status:index===0?'RESOLVED':index===2?'ACTIVE':'OPEN',assignedAdminId:index===2?'other-agent':'',assignedAdminName:index===2?'另一位客服':'',endedAt:index===0?now:null,activeRoute:true,replyRemaining:5,replyDeadline:Math.floor(Date.now()/1000)+172800,lastSeq:100,lastPreview:`客户咨询内容${index+1}`,updatedAt:now,unread:index===0?2:0}))
-const conversation=i=>{const c=conversations[i-1],mine=c.assignedAdminId==='fixture-admin';return {...c,canAccept:c.status==='OPEN',canReply:c.status==='ACTIVE'&&mine,canEnd:c.status==='ACTIVE'&&mine,canRelease:c.status==='ACTIVE'}}
+for(const [i,c] of conversations.entries())c.customer=i===7?{profileComplete:false,phoneVerified:false}:{profileComplete:true,phoneVerified:true,name:c.displayName,phone:'1390000'+String(3001+i),memberVerified:i===1,memberGrade:i===1?'金卡会员':'',sources:['MINIPROGRAM']}
+const conversation=i=>{const c=conversations[i-1],mine=c.assignedAdminId==='fixture-admin';return {...c,canAccept:c.customer.profileComplete&&c.status==='OPEN',canReply:c.customer.profileComplete&&c.status==='ACTIVE'&&mine,canEnd:c.status==='ACTIVE'&&mine,canRelease:c.status==='ACTIVE'}}
 const message=i=>({id:`message-${i}`,seq:i,direction:i%2?'IN':'OUT',kind:'text',content:`测试聊天内容${i}`,senderName:'测试店长',deliveryStatus:i%2?'RECEIVED':'SENT',createdAt:now})
 const context=await browser.newContext({viewport:{width:2560,height:1440}})
 await context.addInitScript(()=>sessionStorage.setItem('yht-admin-token','fixture-browser-token'))
@@ -38,7 +39,7 @@ await context.route('**/api/**',async route=>{
     let items=conversations.map((_,i)=>conversation(i+1))
     if(url.searchParams.get('storeId'))items=items.filter(c=>c.storeId===url.searchParams.get('storeId'))
     if(url.searchParams.get('status'))items=items.filter(c=>c.status===url.searchParams.get('status'))
-    const q=url.searchParams.get('q');if(q)items=items.filter(c=>c.displayName.includes(q))
+    const q=url.searchParams.get('q');if(q)items=items.filter(c=>c.displayName.includes(q)||c.customer.phone?.includes(q))
     const total=items.length,page=Math.max(1,Math.min(Number(url.searchParams.get('page'))||1,Math.ceil(total/30)||1))
     return json({items:items.slice((page-1)*30,page*30),page,total,pageSize:30,unreadTotal:items.reduce((n,c)=>n+c.unread,0)})
   }
@@ -102,6 +103,11 @@ try{
   assert.equal(await page.getByRole('note',{name:'微信客服回复说明'}).count(),0,'Ended history must not suggest it is still replyable')
   checks.push({case:'Ended history is read-only and has no reopen or accept action'})
   await page.locator('.chat-list-item').filter({has:page.getByText('测试客户2',{exact:true})}).first().click()
+  const identity=page.getByRole('region',{name:'客户资料',exact:true})
+  await identity.getByText('13900003002',{exact:true}).waitFor()
+  assert.match(await identity.innerText(),/测试客户2/);assert.match(await identity.innerText(),/金卡会员/)
+  assert.match(await identity.innerText(),/微信手机号已授权/)
+  checks.push({case:'Authorized customer name, verified phone and verified membership appear beside the conversation'})
   await page.getByRole('button',{name:'接入会话',exact:true}).waitFor()
   assert.equal(await page.getByLabel('回复消息',{exact:true}).count(),0,'Waiting customers get a reception action instead of an unusable textarea')
   assert.equal(await page.locator('.chat-reply').getByRole('button',{name:'接入会话',exact:true}).count(),1)
@@ -175,6 +181,11 @@ try{
     checks.push({case:`Reply guidance and composer agree: ${state.name}`})
   }
   assert.equal(sendCount,1,'Unavailable replies must not generate additional sends')
+  await page.locator('.chat-list-item').filter({has:page.getByText('测试客户8',{exact:true})}).first().click()
+  await page.getByRole('region',{name:'回复状态',exact:true}).filter({hasText:'客户资料待完善'}).waitFor()
+  assert.equal(await composer.count(),0);assert.equal(await page.getByRole('button',{name:'接入会话',exact:true}).count(),0)
+  assert.match(await identity.innerText(),/客户资料待完善/)
+  checks.push({case:'Legacy anonymous history remains visible but cannot be accepted or replied to'})
 
   await page.getByRole('button',{name:'下一页',exact:true}).click()
   await page.locator('.chat-list-item').first().filter({hasText:'测试客户31'}).waitFor()
@@ -183,6 +194,11 @@ try{
   await page.locator('.chat-list-item').first().filter({hasText:'测试客户35'}).waitFor()
   assert.match(await page.locator('.chat-pagination').innerText(),/1\s*\/\s*1/)
   checks.push({case:'Filtering from a later page returns visible results and correct pagination'})
+  await page.getByLabel('搜索客户会话',{exact:true}).fill('13900003002')
+  await page.getByLabel('搜索客户会话',{exact:true}).press('Enter')
+  await page.locator('.chat-list-item').first().filter({hasText:'测试客户2'}).waitFor()
+  assert.equal(await page.locator('.chat-list-item').count(),1)
+  checks.push({case:'Searching a verified phone finds the corresponding identified conversation'})
 
   await option('客服门店范围','余姚门店')
   await page.getByText('当前筛选范围内暂无会话，可切换门店或清除筛选。',{exact:true}).waitFor()
