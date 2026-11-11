@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import {createHash} from 'node:crypto'
 import {chromium} from 'playwright'
 import {mkdir,readFile,writeFile} from 'node:fs/promises'
 import {resolve,sep,extname} from 'node:path'
@@ -10,6 +11,8 @@ await mkdir(output,{recursive:true})
 const browser=await chromium.launch({channel:'msedge',headless:true})
 const checks=[],errors=[],unknown=[],desktop=[]
 const now=new Date().toISOString()
+const builtIndexSha256=createHash('sha256').update(await readFile('dist/index.html')).digest('hex')
+let passed=false
 const templates=[
   {kind:'result',title:'预约处理提醒',templateId:'fixture-result-template',ready:true,issue:''},
   {kind:'reminder',title:'到店时间提醒',templateId:'fixture-reminder-template',ready:true,issue:''},
@@ -27,9 +30,12 @@ async function fixture({readonly=false,storeAccount=false}={}){
     const contentType={'.js':'application/javascript','.css':'text/css','.html':'text/html','.svg':'image/svg+xml','.webp':'image/webp'}[extname(file)]||'application/octet-stream'
     return route.fulfill({contentType,body:await readFile(file)})
   })
-  await context.exposeBinding('fixtureDesktop',(_,notice)=>desktop.push(notice))
+  await context.exposeBinding('fixtureDesktop',({page},notice)=>desktop.push({...notice,page:page.url()}))
   await context.addInitScript(()=>{
     sessionStorage.setItem('yht-admin-token','fixture-only')
+    // Tour behavior has its own browser suite; keep this regression focused on
+    // notification settings, receipts and delivery records after onboarding.
+    for(const module of ['appointments','customers','chats','stores','content','notifications'])localStorage.setItem(`yht-admin-guide:v2:fixture-admin:${module}`,'done')
     window.fixtureHidden=false
     Object.defineProperty(document,'hidden',{get:()=>window.fixtureHidden})
     class FixtureNotification{
@@ -50,6 +56,7 @@ async function fixture({readonly=false,storeAccount=false}={}){
       if(path==='/api/admin/stores')return json([{id:'fixture-store',name:'上海中心店',enabled:true},{id:'other-store',name:'余姚店',enabled:true}])
       if(path==='/api/site')return json({brandName:'裕和堂',theme:'sage',hero:{},contact:{},stores:[],services:[],products:[],sections:[],galleryGroups:[]})
       if(path==='/api/admin/appointments')return json({items:[],total:0,page:1,pageSize:20})
+      if(path==='/api/admin/appointments/booking-fixture')return json({id:'booking-fixture',customerName:'示例客户',phone:'139****2001',storeId:'fixture-store',storeName:'上海中心店',serviceName:'养护项目',status:'PENDING',bookingDate:'2026-11-09',startTime:'10:00',headcount:1,version:1,history:[]})
       if(path==='/api/admin/chats/unread')return json({unreadTotal:state.chatUnread,latestSeq:state.latestSeq})
       if(path==='/api/admin/inbox/summary'){
         if(state.failInbox)return route.fulfill({status:503,json:{message:'测试同步失败'}})
@@ -58,7 +65,12 @@ async function fixture({readonly=false,storeAccount=false}={}){
         return json({items,total:items.length,unreadTotal:all.filter(r=>!r.isRead).length,page:1,asOf:now})
       }
       if(path==='/api/admin/notifications/readiness')return json({customer:{templates,credentialsConfigured:true},staff:{ready:false,issues:['待配置认证服务号 AppID / AppSecret。','待配置门店人员服务号模板 ID。']},sms:{configured:false,staffIssue:'腾讯云短信尚未配置',customerIssue:'腾讯云短信尚未配置'}})
-      if(path==='/api/admin/notifications/config')return json({channels:{...state.channels,storeId:url.searchParams.get('storeId'),...(readonly?{smsPhone:''}:{})},recipient:{bound:state.bound},serviceConfigured:state.serviceConfigured,serviceTemplateConfigured:state.serviceConfigured})
+      if(path==='/api/admin/notifications/config'){
+        const selected=url.searchParams.get('storeId'),bound=state.bound&&selected==='fixture-store'
+        const result={channels:{...state.channels,storeId:selected,...(readonly?{smsPhone:''}:{})},recipient:{bound,...(bound?{adminUserId:'manager-fixture'}:{})},serviceConfigured:state.serviceConfigured,serviceTemplateConfigured:state.serviceConfigured}
+        if(state.holdConfig){const pending=state.holdConfig;state.holdConfig=null;await pending}
+        return json(result)
+      }
       if(path==='/api/admin/users')return json([{id:'manager-fixture',displayName:'上海中心店店长',username:'shanghai',enabled:true,storeId:'fixture-store'}])
       if(path==='/api/admin/notifications'){
         const customer=url.searchParams.get('audience')==='CUSTOMER'
@@ -98,6 +110,7 @@ try{
   checks.push('Bell combines counts; marking appointments read leaves consultation unread state intact')
   await page.getByRole('button',{name:'关闭消息',exact:true}).click()
   await page.locator('.ops-sidebar').getByRole('button',{name:'消息中心',exact:true}).click()
+  await page.getByRole('button',{name:'推送设置',exact:true}).click()
   for(const title of ['PC端消息通知','店长微信提醒','门店短信通知'])await page.getByRole('heading',{name:title,exact:true}).waitFor()
   await selectStore(page)
   await page.getByLabel('门店接收人微信提醒',{exact:true}).check()
@@ -117,6 +130,19 @@ try{
   await page.getByRole('button',{name:'刷新绑定状态',exact:true}).click()
   await page.getByRole('status').filter({hasText:'本店微信接收人已确认绑定'}).waitFor()
   checks.push('Manager binding uses only the selected store account and can refresh after phone confirmation')
+  let releaseConfig
+  state.holdConfig=new Promise(resolve=>{releaseConfig=resolve})
+  await page.getByRole('button',{name:'刷新绑定状态',exact:true}).click()
+  await page.getByRole('combobox',{name:'门店范围',exact:true}).click()
+  await page.getByRole('option',{name:'余姚店',exact:true}).click()
+  await page.locator('.notification-scope').getByText('余姚店 · 本店管理后台通知设置',{exact:true}).waitFor()
+  await page.getByRole('button',{name:'刷新绑定状态',exact:true}).waitFor()
+  releaseConfig()
+  await page.waitForTimeout(150)
+  assert.equal(await page.getByRole('button',{name:'解绑接收人',exact:true}).isDisabled(),true)
+  assert.equal(await page.getByRole('button',{name:'推送设置',exact:true}).getAttribute('aria-pressed'),'true')
+  checks.push('Switching stores preserves the selected view and ignores a late binding response for the previous store')
+  await selectStore(page)
   await page.screenshot({path:output+'/staff-2560.png'})
   await page.setViewportSize({width:1366,height:768})
   await page.clock.runFor(400) // Finish the Ant Design popup exit animation under the fake clock.
@@ -131,6 +157,7 @@ try{
   await page.getByRole('button',{name:'检查客户小程序配置',exact:true}).click()
   await page.getByRole('status').filter({hasText:'本次检查未发送客户或店长消息'}).waitFor()
   assert.deepEqual(state.checks,['CUSTOMER'])
+  await page.getByRole('button',{name:'通知记录',exact:true}).click()
   assert.match(await page.locator('.notification-records').innerText(),/小程序订阅消息/)
   checks.push('Customer view has separate templates, SMS settings, server validation and delivery history')
   await page.screenshot({path:output+'/customer-1366.png'})
@@ -143,7 +170,8 @@ try{
   const row={...state.rows[0],id:'notice-new',createdAt:new Date(Date.parse(now)+1000).toISOString(),isRead:false}
   state.rows.push(row)
   await Promise.all([refresh(page),refresh(other)])
-  assert.equal(desktop.filter(r=>r.tag==='yht-inbox:notice-new').length,1)
+  const receiptDiagnostics=await Promise.all([page,other].map(p=>p.evaluate(()=>({locks:!!navigator.locks,receipts:localStorage.getItem('yht-desktop-receipts:fixture-admin')}))))
+  assert.equal(desktop.filter(r=>r.tag==='yht-inbox:notice-new').length,1,JSON.stringify({receiptDiagnostics,desktop}))
   checks.push('New desktop reminder is shown once across two tabs with browser permission granted')
   await page.evaluate(()=>{window.fixtureHidden=true;document.dispatchEvent(new Event('visibilitychange'))})
   const count=state.calls.filter(c=>c.path==='/api/admin/chats/unread').length
@@ -167,6 +195,7 @@ try{
 
   const reader=await fixture({readonly:true,storeAccount:true}),readPage=await reader.page()
   await readPage.locator('.ops-sidebar').getByRole('button',{name:'消息中心',exact:true}).click()
+  await readPage.getByRole('button',{name:'推送设置',exact:true}).click()
   await readPage.getByLabel('门店短信接收手机号',{exact:true}).waitFor()
   assert.equal(await readPage.getByLabel('门店短信接收手机号',{exact:true}).inputValue(),'139****2001')
   assert.equal(await readPage.getByLabel('门店短信接收手机号',{exact:true}).isDisabled(),true)
@@ -177,8 +206,9 @@ try{
   await readPage.screenshot({path:output+'/readonly-2560.png'})
   await reader.context.close()
   assert.deepEqual(errors,[]);assert.deepEqual(unknown,[])
+  passed=true
   console.log(JSON.stringify({status:'passed',checks,liveApisUsed:false,realMessagesSent:false},null,2))
 }finally{
-  await writeFile(output+'/results.json',JSON.stringify({at:new Date().toISOString(),checks,errors,unknown,desktop},null,2))
+  await writeFile(output+'/results.json',JSON.stringify({status:passed?'passed':'failed',at:new Date().toISOString(),builtIndexSha256,liveApisUsed:false,realMessagesSent:false,checks,errors,unknown,desktop},null,2))
   await browser.close()
 }

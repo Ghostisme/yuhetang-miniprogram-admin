@@ -42,3 +42,91 @@
 @media(max-width:950px){.notification-channel-grid.customer-channels{grid-template-columns:1fr}.notification-audiences>button{padding:16px}.notification-audiences strong{font-size:15px}.personal-inbox .card-heading{flex-wrap:wrap}.personal-message{gap:10px}}
 @media(max-width:1400px){.notification-channel-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:950px){.notification-channel-grid{grid-template-columns:1fr}.notification-scope{align-items:start;flex-wrap:wrap}}
+
+/* The work area owns the viewport; only the selected pane's content scrolls. */
+.operations .ops-main[data-page=notifications]{overflow:hidden;scrollbar-gutter:auto}
+.operations .ops-main[data-page=notifications]>.ops-page-heading{margin-bottom:16px}
+.operations .ops-main[data-page=notifications]>.ops-page-heading p{display:none}
+.operations .ops-main[data-page=notifications]>.notifications-workspace{display:flex;flex-direction:column;flex:1 1 0;min-height:0;min-width:0;gap:12px;overflow:hidden}
+.operations .notifications-workspace>.notification-audiences{flex-shrink:0;margin:0;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.notifications-workspace .notification-audiences>button{padding:12px 18px;gap:4px}
+.notifications-workspace .notification-audiences strong{font-size:15px}
+.notifications-workspace .notification-audiences small{display:none}
+.notification-view-tabs{display:flex;flex-shrink:0;gap:6px;padding-bottom:10px;border-bottom:1px solid #e1e8da}
+.notification-view-tabs>.ant-btn{color:#65755d;background:transparent;border-color:transparent}
+.notification-view-tabs>.ant-btn.active{background:#e8efdf;border-color:#d8e2ce;color:#405b35}
+.notifications-workspace .notification-error{margin:0;padding:8px 12px;font-size:13px;overflow-wrap:anywhere}
+.operations .notifications-workspace>:is(.notification-records,.personal-inbox){display:flex;flex-direction:column;flex:1 1 0;min-height:0;min-width:0;margin:0;overflow:hidden}
+.operations .notifications-workspace :is(.notification-records,.personal-inbox)>.card-heading{flex-shrink:0;flex-wrap:nowrap;align-items:flex-start;margin-bottom:0;gap:12px}
+.operations .notifications-workspace :is(.notification-records,.personal-inbox)>.card-heading>div:first-child{flex:1 1 0;min-width:0}
+.operations .notifications-workspace :is(.notification-records,.personal-inbox)>.card-heading p{margin:6px 0 0;font-size:12px;line-height:1.7}
+.notifications-workspace .notification-filters{flex-shrink:0;margin:14px 0;gap:12px}
+.notifications-workspace .notification-filters>.admin-select{min-width:180px;max-width:100%}
+.operations .notifications-workspace .notification-record-scroll{flex:1 1 0;min-height:0;min-width:0;max-height:none;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;overflow-anchor:none;border-block:1px solid #edf1e8}
+.notifications-workspace .notification-record-scroll:focus-visible,.notification-settings-scroll:focus-visible,.notifications-workspace .personal-inbox-list:focus-visible{outline:2px solid #718967;outline-offset:-2px}
+.notifications-workspace .notification-record-scroll>.ops-table{width:100%;table-layout:fixed;white-space:normal}
+.notifications-workspace .notification-record-scroll :is(td,th){white-space:normal;overflow-wrap:anywhere}
+.notifications-workspace .notification-record-scroll th{position:sticky;top:0;z-index:1;background:#f5f7f0}
+.notifications-workspace .notification-record-scroll th:last-child{width:32%}
+.notifications-workspace .notification-record-scroll .data-empty{min-height:100%;height:auto;padding:24px 12px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.operations .notifications-workspace :is(.notification-records,.personal-inbox)>.pager{flex-shrink:0;margin:0;padding:12px 0 0;min-height:40px;display:flex;justify-content:flex-end;box-sizing:border-box}
+.notifications-workspace .personal-inbox>.segmented{flex-shrink:0;margin-top:14px}
+.operations .notifications-workspace .personal-inbox-list{flex:1 1 0;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;overflow-anchor:none}
+.notification-settings-scroll{flex:1 1 0;min-height:0;min-width:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:4px}
+.notification-settings-scroll .notification-channel-grid{margin-bottom:0}
+
+@media(min-width:768px){
+  .operations .ops-main[data-page=notifications]>.notifications-workspace{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr)}
+  .notifications-workspace>.notification-view-tabs{align-self:stretch;align-items:center;padding:0;border:0}
+  .notifications-workspace>:is(.notification-records,.personal-inbox,.notification-settings-scroll){grid-column:1 / -1}
+}
+
+@media(max-width:1023px){
+  .operations .ops-main[data-page=notifications]>.ops-page-heading{margin-bottom:14px}
+  .notifications-workspace .notification-record-scroll th:last-child{width:26%}
+}
+@media(max-width:767px){
+  #root .operations .ops-main[data-page=notifications]{padding:12px 12px 14px}
+  #root .operations .ops-main[data-page=notifications]>.ops-page-heading{flex-direction:row;align-items:center;gap:8px;margin-bottom:12px}
+  .operations .ops-main[data-page=notifications]>.ops-page-heading p{display:none}
+  .operations .ops-main[data-page=notifications]>.ops-page-heading h1{font-size:22px;margin:0;white-space:nowrap}
+  #root .operations .ops-main[data-page=notifications] .scope-control{width:auto;flex:0 1 168px;margin-left:auto;gap:6px}
+  #root .operations .ops-main[data-page=notifications] .scope-control .admin-select{min-width:0}
+  .operations .ops-main[data-page=notifications]>.notifications-workspace{gap:8px}
+  .notifications-workspace>.notification-audiences{gap:8px}
+  #root .notifications-workspace .notification-audiences>button{padding:9px 6px;text-align:center;min-height:44px;justify-content:center}
+  .notifications-workspace .notification-audiences strong{font-size:13px;line-height:1.5}
+  .notifications-workspace .notification-audiences small{display:none}
+  .notification-view-tabs{gap:4px;padding-bottom:8px}
+  #root .operations .notification-view-tabs>.ant-btn{flex:1 1 0;min-width:0;padding:8px 4px;font-size:12px}
+  .operations .notifications-workspace>:is(.notification-records,.personal-inbox){padding:12px;border-radius:8px}
+  .operations .notifications-workspace :is(.notification-records,.personal-inbox)>.card-heading{gap:6px}
+  .operations .notifications-workspace :is(.notification-records,.personal-inbox)>.card-heading h3{font-size:15px;line-height:1.6}
+  #root .operations .notification-records>.card-heading>.ant-btn{padding:8px;font-size:12px;gap:4px}
+  .notifications-workspace .notification-filters{gap:8px;margin:10px 0}
+  .notifications-workspace .notification-channel-tabs{display:flex;flex:1 1 100%;gap:4px;flex-wrap:nowrap}
+  #root .operations .notification-channel-tabs>.ant-btn{flex:1 1 0;min-width:0;padding:8px 3px;font-size:12px;white-space:normal}
+  .notifications-workspace .notification-filters>.admin-select{flex:1 1 0;width:0;min-width:0}
+  .notifications-workspace .notification-record-scroll>.ops-table{table-layout:auto}
+  .notifications-workspace .notification-record-scroll tbody{gap:8px;padding:8px 0}
+  .notifications-workspace .notification-record-scroll th{position:static}
+  .notifications-workspace .notification-record-scroll td{grid-template-columns:78px minmax(0,1fr);padding:8px 0}
+  .notifications-workspace .notification-record-scroll :is(tr,td){min-width:0}
+  .notifications-workspace .notification-record-scroll .notification-channel-tag{white-space:normal}
+  .operations .notifications-workspace :is(.notification-records,.personal-inbox)>.pager{padding-top:8px;min-height:44px;justify-content:center}
+  .notifications-workspace .pager .ant-pagination{justify-content:center;flex-wrap:nowrap;gap:8px}
+  .notifications-workspace .pager .ant-pagination-total-text{width:auto;font-size:12px}
+  .notifications-workspace .personal-inbox>.card-heading{flex-wrap:wrap}
+  .notifications-workspace .personal-inbox>.card-heading>div:first-child{flex-basis:100%}
+  .notifications-workspace .personal-inbox>.segmented{margin-top:8px}
+  .operations .notifications-workspace .personal-inbox-list{margin-top:6px}
+  .notifications-workspace .personal-inbox .inbox-count{margin-left:4px;padding:2px 6px;font-size:11px}
+  #root .operations .personal-inbox>.card-heading>.ant-btn{padding:8px;font-size:12px;gap:4px}
+  .notifications-workspace .personal-message{align-items:flex-start;gap:8px;padding:12px 0;flex-wrap:wrap}
+  .notifications-workspace .personal-message>.ant-btn{margin-left:auto}
+  .notification-settings-scroll .notification-check{flex-wrap:wrap;gap:10px;padding:14px}
+}
+@media(max-width:767px) and (max-height:700px){
+  .operations .notifications-workspace :is(.notification-records,.personal-inbox)>.card-heading p{display:none}
+  .notifications-workspace .personal-inbox>.card-heading>div:first-child{flex-basis:auto}
+}

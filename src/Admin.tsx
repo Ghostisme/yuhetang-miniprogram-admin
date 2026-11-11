@@ -80,7 +80,7 @@ export default function Admin(){
   {viewTab==='content'&&<ContentEditor key={me.id+':'+store} ctx={ctx}/>}
   {viewTab==='users'&&<UsersEditor ctx={ctx}/>}
   {viewTab==='roles'&&<RolesEditor ctx={ctx}/>}
-  {viewTab==='notifications'&&<Notifications key={me.id+':'+store} ctx={ctx}/>}
+  {viewTab==='notifications'&&<Notifications key={me.id} ctx={ctx}/>}
   {viewTab==='assets'&&<Assets ctx={ctx}/>}
   {viewTab==='wechat-menu'&&<WechatMenu ctx={ctx}/>}
   {viewTab==='imports'&&<Imports ctx={ctx}/>}
