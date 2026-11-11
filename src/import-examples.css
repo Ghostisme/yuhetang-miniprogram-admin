@@ -1,0 +1,55 @@
+.operations .import-workflow { display:flex; list-style:none; padding:16px; margin:0 0 20px; gap:16px; border:1px solid #e1e8da; border-radius:8px; background:#f6f8f2; }
+.import-workflow li { flex:1; display:flex; align-items:center; gap:8px; color:#7d8977; font-size:13px; min-width:0; }
+.import-workflow li > span { width:24px; height:24px; border:1px solid #d5dfce; border-radius:50%; display:grid; place-items:center; flex-shrink:0; background:white; }
+.import-workflow li[aria-current=step] { color:#3f5c46; font-weight:600; }
+.import-workflow li[aria-current=step] > span { background:#455f4b; color:#fff; border-color:#455f4b; }
+.operations .import-upload-controls { margin-top:18px; align-items:center; }
+.operations .import-upload-controls input[type=file] { min-width:0; max-width:100%; width:260px; }
+.import-examples { border-top:1px solid #e5ebdf; margin-top:24px; padding-top:24px; }
+.import-examples > header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:16px; }
+.import-examples h4 { display:flex; gap:8px; align-items:center; margin:0 0 8px; color:#41533d; font-size:16px; }
+.import-examples > header p { margin:0; color:#7b8775; font-size:13px; line-height:1.8; }
+.import-examples > header > .ant-btn { flex-shrink:0; }
+.import-example-notes { margin:0 0 18px; padding:14px 18px 14px 32px; background:#f5f7ef; border-radius:6px; color:#65735c; line-height:1.9; font-size:13px; }
+.import-example-notes li + li { margin-top:6px; }
+.import-store-reference { margin:16px 0; border:1px solid #e0e7d8; border-radius:6px; padding:12px 16px; }
+.import-store-reference summary { cursor:pointer; color:#476244; line-height:1.7; font-size:13px; }
+.import-store-reference > p { color:#7a8674; font-size:12px; line-height:1.8; }
+.import-store-reference > div { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px; }
+.import-store-reference article { display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; background:#f9faf6; padding:10px; min-width:0; }
+.import-store-reference article strong { width:100%; font-size:13px; font-weight:500; }
+.import-store-reference code { overflow-wrap:anywhere; font-size:12px; }
+.import-field-table { overflow:auto; max-height:540px; overscroll-behavior:contain; border:1px solid #e0e7d8; border-radius:8px; }
+.import-field-table table { border-collapse:separate; border-spacing:0; width:100%; font-size:13px; text-align:left; }
+.import-field-table th { position:sticky; top:0; z-index:1; background:#f1f5ea; color:#506348; font-weight:500; padding:12px 16px; border-bottom:1px solid #dfe7d8; }
+.import-field-table td { vertical-align:top; line-height:1.8; padding:14px 16px; color:#66745e; border-bottom:1px solid #e8eddf; overflow-wrap:anywhere; }
+.import-field-table tr:last-child td { border-bottom:0; }
+.import-field-table td:first-child { min-width:160px; width:23%; }
+.import-field-table td:nth-child(2) { width:47%; }
+.import-field-table td:last-child { width:30%; }
+.import-field-table td:first-child :is(code,span) { display:block; }
+.import-field-table code { font-size:12px; color:#405f48; overflow-wrap:anywhere; }
+.import-field-table small { display:inline-block; font-size:11px; padding:1px 6px; margin-top:4px; background:#eff2eb; border-radius:4px; color:#7d8875; }
+.import-field-table small.required { background:#f8edda; color:#947642; }
+@media (max-width:767px) {
+  .operations .import-workflow { gap:8px; padding:12px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .import-workflow li { font-size:12px; }
+  .operations .import-upload-controls { align-items:stretch; }
+  .operations .import-upload-controls > .admin-select { flex:1 1 100%; }
+  .operations .import-upload-controls input[type=file] { width:100%; flex:1 1 100%; font-size:13px; }
+  .import-examples > header { flex-direction:column; gap:12px; }
+  .import-examples > header > .ant-btn { width:100%; }
+  .import-example-notes { padding:12px 12px 12px 26px; font-size:12px; }
+  .import-store-reference { padding:10px; }
+  .import-store-reference > div { grid-template-columns:minmax(0,1fr); }
+  .import-field-table { max-height:70dvh; }
+  .import-field-table :is(table,tbody,tr,td) { display:block; width:auto; }
+  .import-field-table thead { display:none; }
+  .import-field-table tr { padding:12px; border-bottom:1px solid #dfe7d8; }
+  .import-field-table tr:last-child { border-bottom:0; }
+  .import-field-table td { padding:4px 0; border:0; }
+  .import-field-table td:first-child { min-width:0; width:auto; }
+  .import-field-table td:first-child span { display:inline; margin-right:8px; }
+  .import-field-table td:nth-child(2),.import-field-table td:last-child { width:auto; }
+  .import-field-table td:last-child::before { content:'虚构示例：'; color:#8a9483; font-size:12px; }
+}

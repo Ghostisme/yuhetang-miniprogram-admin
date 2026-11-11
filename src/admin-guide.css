@@ -1,0 +1,27 @@
+.operations .ops-page-title { display:flex; align-items:center; flex-wrap:wrap; gap:10px 16px; margin:8px 0; }
+.operations .ops-page-heading .ops-page-title h1 { margin:0; }
+.admin-guide-entry { display:inline-flex; flex-shrink:0; }
+.operations .admin-guide-trigger.ant-btn { display:inline-flex; align-items:center; gap:6px; height:32px; padding:4px 10px; color:#455f4b; border:1px solid #dce5d7; border-radius:6px; background:#fff; font-size:12px; }
+.admin-guide-tour .ant-tour-section { padding:0; max-width:calc(100vw - 32px); max-height:calc(100dvh - 32px); overflow-y:auto; border:1px solid #dfe7da; border-radius:12px; box-shadow:0 8px 36px #13231a26; }
+.admin-guide-tour .ant-tour-header { padding-right:24px; }
+.admin-guide-tour .ant-tour-title { font-size:17px; line-height:1.5; color:#344c3c; overflow-wrap:anywhere; }
+.admin-guide-tour .admin-guide-module { display:block; color:#7c8877; font-size:12px; margin:0 0 8px; }
+.admin-guide-tour .admin-guide-description p { margin:0; color:#596852; font-size:14px; line-height:1.8; overflow-wrap:anywhere; }
+.admin-guide-tour .ant-tour-footer { gap:8px; margin-top:16px; align-items:center; flex-wrap:wrap; }
+.admin-guide-tour .admin-guide-progress { color:#7b8775; font-size:12px; white-space:nowrap; }
+.admin-guide-tour .ant-tour-actions { display:flex; flex-wrap:wrap; gap:6px; }
+.admin-guide-tour .ant-tour-actions .ant-btn { min-height:32px; margin:0; padding-inline:10px; font-size:12px; }
+.admin-guide-tour .admin-guide-skip.ant-btn { color:#7b8775; padding-inline:4px; border:0; background:transparent; box-shadow:none; }
+@media (max-width:767px) {
+  .operations .ops-page-title { gap:8px 12px; }
+  .admin-guide-tour .ant-tour-title { font-size:16px; }
+  .admin-guide-tour .admin-guide-description p { font-size:13px; line-height:1.7; }
+  .admin-guide-tour .ant-tour-footer { margin-top:12px; }
+  /* Keep the notification workspace's fixed controls compact so adding the
+     visible guide entry does not take space away from its scrolling list. */
+  #root .operations .ops-main[data-page=notifications] > .ops-page-heading { flex-wrap:nowrap; }
+  .operations .ops-main[data-page=notifications] .ops-page-title { flex-wrap:nowrap; gap:6px; margin:0; }
+  #root .operations .ops-main[data-page=notifications] .ops-page-title h1 { font-size:20px; letter-spacing:0; }
+  #root .operations .ops-main[data-page=notifications] .admin-guide-trigger.ant-btn { padding-inline:6px; font-size:12px; }
+  #root .operations .ops-main[data-page=notifications] .scope-control { flex:1 1 0; min-width:0; }
+}
