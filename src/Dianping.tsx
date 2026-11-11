@@ -16,7 +16,7 @@ function Field({label,children}:{label:string;children:ReactNode}){return <label
 
 export function DianpingIntegration({ctx}:{ctx:Ctx}){
   const [data,setData]=useState<Row|null>(null),[shop,setShop]=useState<Row>(blankShop),[product,setProduct]=useState<Row>(blankProduct),[busy,setBusy]=useState(false),[error,setError]=useState('')
-  const alive=useRef(true),canWrite=ctx.me.hq&&ctx.can('imports:write')
+  const alive=useRef(true),canWrite=ctx.me.hq&&ctx.can('integrations:write')
   useEffect(()=>{alive.current=true;void refresh();return()=>{alive.current=false}},[])
   async function refresh(){try{const next=await api<Row>('/api/admin/dianping/config');if(alive.current){setData(next);setError('')}}catch(e){if(alive.current)setError((e as Error).message)}}
   async function save(type:'shops'|'products',e:React.FormEvent){
@@ -56,7 +56,7 @@ export function DianpingIntegration({ctx}:{ctx:Ctx}){
           </DisabledFieldset></form>}
         </div>
       </div>
-      {!canWrite&&<p className="field-note">修改映射和导入资料需由总部角色授予“导入初始资料”权限。</p>}
+      {!canWrite&&<p className="field-note">当前仅可查看映射；修改需授予“维护扩展与配置”权限。资料导入单独授权。</p>}
       {data.batches.length>0&&<><h4>最近导入记录</h4><div className="table-scroll"><ResponsiveTable className="ops-table"><thead><tr><th>导入时间 / 操作人</th><th>文件 / 类型</th><th>处理结果</th></tr></thead><tbody>{data.batches.map((b:Row)=><tr key={b.id}><td>{displayTime(b.createdAt)}<small>{b.actorName}</small></td><td>{b.sourceName}<small>{b.kind==='ORDERS'?'点评订单':'点评客户'}</small></td><td>新增 {b.createdCount} · 更新 {b.updatedCount} · 跳过 {b.skippedCount}</td></tr>)}</tbody></ResponsiveTable></div></>}
     </>}
   </section>

@@ -1,6 +1,7 @@
 export type Permission = {code:string;requires?:string[];headquartersOnly?:boolean}
 
-export function moduleAllowed(id:string,permission:string,can:(code:string)=>boolean){
+export function moduleAllowed(id:string,permission:string,can:(code:string)=>boolean,hq=true){
+  if((id==='integrations'||id==='wechat-menu')&&!hq)return false
   if(id==='content')return can('content:read')||can('services:read')
   if(id==='stores')return can('stores:write')||can('rules:write')
   return can(permission)
